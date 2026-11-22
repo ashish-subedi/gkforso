@@ -434,9 +434,9 @@ function renderNav() {
   $("#nav").innerHTML = GROUPS.map(([g, items]) => `<div class="grp">${g}</div>` + items.map(([k, l, ic, mob]) =>
     `<button class="${on(k) ? "on" : ""} ${mob ? "" : "dk"}" onclick="go('${k}')" ${on(k) ? 'aria-current="page"' : ""}><span class="ic" aria-hidden="true">${ic}</span>${l}${k === "review" && flagged ? `<span class="cnt">${flagged}</span>` : ""}</button>`).join("")).join("")
     + `<button class="mob ${GROUPS.flatMap(g => g[1]).some(n => !n[3] && on(n[0])) ? "on" : ""}" onclick="toggleMenu(event)"><span class="ic" aria-hidden="true">⋯</span>More</button>`;
-  if (ce) { $("#sidefoot").innerHTML = `<div class="sf-btns"><button onclick="ceExport()">Download progress file</button><label>Load progress file<input type="file" accept=".json" style="display:none" onchange="ceImportProgress(this.files[0])"></label></div>${CEQ.length.toLocaleString()} questions<br>Progress kept separately from GK`; return; }
+  if (ce) { $("#sidefoot").innerHTML = `<div class="sf-btns"><button onclick="exportAll()">Download all progress</button><label>Load all progress<input type="file" accept=".json" style="display:none" onchange="importAll(this.files[0])"></label></div>${CEQ.length.toLocaleString()} questions<br>One file backs up both modules`; return; }
   const real = ALLQ.filter(q => !q.is_sample).length;
-  $("#sidefoot").innerHTML = `<div class="sf-btns"><button onclick="exportProgress()">Download progress file</button><label>Load progress file<input type="file" accept=".json" style="display:none" onchange="importProgress(this.files[0])"></label></div>${real.toLocaleString()} questions<br>Updated ${esc(fdate(Date.parse((DATA.meta || {}).updated || "") || 0))}`;
+  $("#sidefoot").innerHTML = `<div class="sf-btns"><button onclick="exportAll()">Download all progress</button><label>Load all progress<input type="file" accept=".json" style="display:none" onchange="importAll(this.files[0])"></label></div>${real.toLocaleString()} questions<br>Updated ${esc(fdate(Date.parse((DATA.meta || {}).updated || "") || 0))}`;
 }
 function toggleMenu(e) { e.stopPropagation(); const r = $("#menu-root"); if (r.innerHTML) { closeMenu(); return; }
   const flagged = ALLQ.filter(q => (q.review_flags || []).length).length;
@@ -481,8 +481,8 @@ function vDash() {
   const untouched = subs.filter(s => s.g.cov < 0.15 && s.qs.length >= 10).sort((a, b) => b.qs.length - a.qs.length).slice(0, 3);
   const real = ALLQ.filter(q => !q.is_sample).length;
   const stale = P.log.length >= 20 && (!P.settings.lastExport || Date.now() - P.settings.lastExport > 7 * DAY);
-  const intro = PUBLIC && !P.log.length ? `<div class="banner info"><b>Your progress stays on this device.</b> Answers, mistakes and revision dates are saved in this browser only. To continue on another phone or computer, or to keep a backup, download your progress file and load it there (sidebar, or <a href="#" onclick="go('settings');return false">Progress &amp; settings</a>). New questions are added to this page over time; your progress carries over.</div>` : "";
-  const nudge = stale ? `<div class="banner info spread"><span>Your progress is only saved in this browser. ${P.settings.lastExport ? `Last backup ${fdate(P.settings.lastExport)}.` : "You haven't downloaded a backup yet."}</span><button class="btn sm pri" onclick="exportProgress()">Download progress file</button></div>` : "";
+  const intro = PUBLIC && !P.log.length ? `<div class="banner info"><b>Your progress stays on this device.</b> Answers, mistakes and revision dates are saved in this browser only. To continue on another phone or computer, or to keep a backup, download all progress (one file for both modules) and load it there (sidebar, or <a href="#" onclick="go('settings');return false">Progress &amp; settings</a>). New questions are added to this page over time; your progress carries over.</div>` : "";
+  const nudge = stale ? `<div class="banner info spread"><span>Your progress is only saved in this browser. ${P.settings.lastExport ? `Last backup ${fdate(P.settings.lastExport)}.` : "You haven't downloaded a backup yet."}</span><button class="btn sm pri" onclick="exportAll()">Download all progress</button></div>` : "";
   return `${intro}${nudge}<h1>नमस्ते</h1><p class="sub">${real.toLocaleString()} questions${PUBLIC ? "" : " in your bank"}${today.length ? ` · ${today.length} answered today (${fp(pct(tc, today.length))} correct)` : ""}${streak > 1 ? ` · ${streak}-day streak` : ""}</p>
   <section class="block lead">
     <div class="spread"><div><h2 style="margin:0">${Q.due.length ? "Today's revision is ready" : "Start a quiz"}</h2>
@@ -981,8 +981,8 @@ function vSettings() {
   const fld = (l, k, min, max) => `<div class="k">${l}</div><div><input type="number" min="${min}" max="${max}" value="${S[k]}" style="width:110px" onchange="P.settings.${k}=Math.max(${min},+this.value||${min});saveP();toast('Saved')"></div>`;
   return `<h1>${PUBLIC ? "Progress &amp; settings" : "Settings"}</h1><p class="sub">Your progress file and revision rules.</p>
   <section class="block lead"><h2>Your progress file</h2><p class="muted">Your answers, mistakes, revision dates and quiz history are saved in this browser on this device only. Clearing browser data, a private window or another device starts empty.</p>
-    <ul class="muted" style="margin:0 0 14px;padding-left:20px"><li><b>Download</b> a progress file to keep a backup or move to another device.</li><li><b>Load</b> it on any device to continue. Loading merges with what is already there, so nothing is lost.</li></ul>
-    <div class="row"><button class="btn pri" onclick="exportProgress()">Download progress file</button><label class="btn">Load progress file<input type="file" accept=".json" style="display:none" onchange="importProgress(this.files[0])"></label><button class="btn" onclick="exportCSV(pool(),'question_bank.csv')">Export questions (CSV)</button></div>
+    <ul class="muted" style="margin:0 0 14px;padding-left:20px"><li><b>Download all progress</b> saves General Knowledge and Computer Engineer progress together in one file, to keep a backup or move to another device.</li><li><b>Load all progress</b> on any device puts each part back in its own module. Loading merges with what is already there, so nothing is lost.</li></ul>
+    <div class="row"><button class="btn pri" onclick="exportAll()">Download all progress</button><label class="btn">Load all progress<input type="file" accept=".json" style="display:none" onchange="importAll(this.files[0])"></label><button class="btn" onclick="exportCSV(pool(),'question_bank.csv')">Export questions (CSV)</button></div>
     <p class="faint">${P.log.length} answers · ${P.sessions.length} quizzes · last export ${S.lastExport ? fdate(S.lastExport) : "never"}</p>
     <button class="btn sm ghost danger" onclick="confirmReset()">Reset all progress…</button></section>
   <section class="block"><h2>Revision rules</h2><div class="cfg">
@@ -994,14 +994,27 @@ function vSettings() {
   ${PUBLIC ? "" : `<section class="block"><h2>Sample questions</h2><label class="row"><input type="checkbox" class="cb" ${S.showSample ? "checked" : ""} onchange="P.settings.showSample=this.checked;saveP();render()"> Include the 38 bundled sample questions</label></section>`}`;
 }
 function dl(name, text, type = "application/json") { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
-function exportProgress() { P.settings.lastExport = Date.now(); saveP(); dl(`psc_gk_progress_${dayKey(Date.now())}.json`, JSON.stringify({ bank_id: DATA.meta.bank_id, exported: new Date().toISOString(), ...P })); toast("Progress file downloaded"); if (route === "settings" || route === "dash") render(); }
-function importProgress(file) { if (!file) return; file.text().then(t => { let X; try { X = JSON.parse(t); } catch (e) { toast("Not a valid JSON file."); return; } if (!X.q || !X.log) { toast("That isn't a progress export."); return; }
+function exportAll() { const now = Date.now(), out = { format: "psc-progress-all", version: 1, exported: new Date(now).toISOString() };
+  P.settings.lastExport = now; saveP(); out.gk = { bank_id: DATA.meta.bank_id, ...P };
+  if (typeof CP !== "undefined" && CP) { CP.settings.lastExport = now; ceSave(); out.ce = { module: "computer_engineer", bank_id: CEB.meta.bank_id, ...CP }; }
+  dl(`psc_progress_all_${dayKey(now)}.json`, JSON.stringify(out)); toast("All progress downloaded (both modules)"); render(); }
+const exportProgress = exportAll;
+function gkMerge(X) { if (!X || !X.q || !X.log) return -1;
+  X.mistakes = X.mistakes || {}; X.sessions = X.sessions || [];
   const key = l => l[0] + "|" + l[1], have = new Set(P.log.map(key)); let add = 0; for (const l of X.log) if (!have.has(key(l))) { P.log.push(l); add++; } P.log.sort((a, b) => a[1] - b[1]);
   for (const [id, s] of Object.entries(X.q)) { const m = P.q[id]; if (!m || (s.la || 0) > (m.la || 0)) P.q[id] = s; }
   for (const [id, m] of Object.entries(X.mistakes || {})) { const c = P.mistakes[id]; if (!c || m.last > c.last) P.mistakes[id] = { ...m, cause: m.cause || (c && c.cause) || "" }; }
   const sid = new Set(P.sessions.map(s => s.id)); for (const s of X.sessions || []) if (!sid.has(s.id)) P.sessions.push(s); P.sessions.sort((a, b) => a.ts - b.ts);
-  Object.assign(P.reports, X.reports || {}); for (const [k, v] of Object.entries(X.notes || {})) if (v && !P.notes[k]) P.notes[k] = v; saveP(); render(); toast(`Merged — ${add} new answers added`); }); }
-function confirmReset() { modal(`<h2>Reset all progress?</h2><p>This deletes your answers, mistakes, quiz history and notes from this browser. Questions are not affected.</p><div class="row" style="margin-top:16px"><button class="btn" onclick="exportProgress()">Export first</button><button class="btn pri" style="background:var(--bad);border-color:var(--bad)" onclick="P=blank();saveP();closeModal();render();toast('Progress reset')">Reset</button><button class="btn ghost" onclick="closeModal()">Cancel</button></div>`); }
+  Object.assign(P.reports, X.reports || {}); for (const [k, v] of Object.entries(X.notes || {})) if (v && !P.notes[k]) P.notes[k] = v; saveP(); return add; }
+function importAll(file) { if (!file) return; file.text().then(t => { let X; try { X = JSON.parse(t); } catch (e) { toast("Not a valid JSON file."); return; }
+  let gk = -1, ce = false;
+  if (X.format === "psc-progress-all") { gk = gkMerge(X.gk); if (X.ce && typeof ceMerge === "function") ce = ceMerge(X.ce); }
+  else if (X.module === "computer_engineer") { if (typeof ceMerge === "function") ce = ceMerge(X); }
+  else gk = gkMerge(X);
+  if (gk < 0 && !ce) { toast("That isn't a progress file from this app."); return; }
+  render(); toast(`Progress loaded — ${[gk >= 0 ? `General Knowledge: ${gk} new answers` : "", ce ? "Computer Engineer merged" : ""].filter(Boolean).join(" · ")}`); }); }
+const importProgress = importAll;
+function confirmReset() { modal(`<h2>Reset all progress?</h2><p>This deletes your answers, mistakes, quiz history and notes from this browser. Questions are not affected.</p><div class="row" style="margin-top:16px"><button class="btn" onclick="exportAll()">Download all progress first</button><button class="btn pri" style="background:var(--bad);border-color:var(--bad)" onclick="P=blank();saveP();closeModal();render();toast('Progress reset')">Reset</button><button class="btn ghost" onclick="closeModal()">Cancel</button></div>`); }
 const cell = v => { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
 function exportCSV(qs, name) { const h = ["id", "question", "A", "B", "C", "D", "answer", "explanation", "category", "topic", "difficulty", "origin", "status", "attempts", "accuracy", "source"];
   const o = (q, k) => { const x = (q.options || []).find(o => o.key === k); return x ? x.text : ""; };
@@ -1092,8 +1105,8 @@ function vCeDash() {
   const weakSubs = subs.filter(s => s.g.ans >= 8).sort((a, b) => a.g.acc - b.g.acc).slice(0, 3);
   const t0 = sod(), today = CP.log.filter(l => l[1] >= t0), tc = today.filter(l => l[2]).length;
   const stale = CP.log.length >= 20 && (!CP.settings.lastExport || Date.now() - CP.settings.lastExport > 7 * DAY);
-  const intro = !CP.log.length ? `<div class="banner info"><b>Separate from General Knowledge.</b> Answers here are saved under Computer Engineer progress in this browser. Download your progress file to keep a backup or continue on another device.</div>` : "";
-  const nudge = stale ? `<div class="banner info spread"><span>Computer Engineer progress is only saved in this browser. ${CP.settings.lastExport ? `Last backup ${fdate(CP.settings.lastExport)}.` : "No backup yet."}</span><button class="btn sm pri" onclick="ceExport()">Download progress file</button></div>` : "";
+  const intro = !CP.log.length ? `<div class="banner info"><b>Separate from General Knowledge.</b> Answers here are saved under Computer Engineer progress in this browser. "Download all progress" backs up this module and General Knowledge together in one file.</div>` : "";
+  const nudge = stale ? `<div class="banner info spread"><span>Computer Engineer progress is only saved in this browser. ${CP.settings.lastExport ? `Last backup ${fdate(CP.settings.lastExport)}.` : "No backup yet."}</span><button class="btn sm pri" onclick="exportAll()">Download all progress</button></div>` : "";
   return `${CE_WARN ? `<div class="banner">${esc(CE_WARN)}</div>` : ""}${intro}${nudge}<h1>Computer Engineer Practice</h1>
   <p class="sub">${CEQ.length.toLocaleString()} questions in ${subs.length} subjects${today.length ? ` · ${today.length} answered today (${fp(pct(tc, today.length))} correct)` : ""}</p>
   <section class="block lead"><div class="spread"><div><h2 style="margin:0">Start practising</h2><div class="muted">Full bank, one subject, a mixed exam set, your weak areas or questions you have already tried.</div></div>
@@ -1309,18 +1322,18 @@ function vCeProgress() {
     <section class="block"><h2>Mastered concepts</h2>${strong.length ? `<table>${strong.map(tr).join("")}</table>` : `<p class="muted">Topics with 80%+ accuracy (5+ answers) appear here.</p>`}</section></div>
   <section class="block"><div class="spread"><h2 style="margin:0">Frequently mistaken</h2>${freq.length ? `<button class="btn sm" onclick="ceBegin({label:'Frequently mistaken',explain:'now',time:0,neg:0,mode:'att'},${JSON.stringify(freq.map(f => f[0])).replace(/"/g, "'")}.map(i=>CEMAP.get(i)))">Practise these</button>` : ""}</div>
     ${freq.length ? `<div class="list">${freq.map(([id, s]) => `<div class="it" onclick="ceShow('${id}')"><span class="tag bad">wrong ${s.w}×</span> ${ceTxt(CEMAP.get(id).question.split("\n")[0].slice(0, 150))}</div>`).join("")}</div>` : `<p class="muted">Questions you get wrong twice or more appear here.</p>`}</section>
-  <section class="block"><h2>Back up or move your progress</h2><p class="muted">This file holds Computer Engineer progress only (and questions you added on this device).</p>
-    <div class="row"><button class="btn pri" onclick="ceExport()">Download progress file</button><label class="btn">Load progress file<input type="file" accept=".json" style="display:none" onchange="ceImportProgress(this.files[0])"></label><button class="btn danger" onclick="ceConfirmReset()">Reset Computer Engineer progress</button></div></section>`;
+  <section class="block"><h2>Back up or move your progress</h2><p class="muted">One file holds your General Knowledge and Computer Engineer progress (and questions you added on this device). Loading it puts each part back in its own module.</p>
+    <div class="row"><button class="btn pri" onclick="exportAll()">Download all progress</button><label class="btn">Load all progress<input type="file" accept=".json" style="display:none" onchange="importAll(this.files[0])"></label><button class="btn danger" onclick="ceConfirmReset()">Reset Computer Engineer progress</button></div></section>`;
 }
-function ceExport() { CP.settings.lastExport = Date.now(); ceSave(); dl(`ce_progress_${dayKey(Date.now())}.json`, JSON.stringify({ module: "computer_engineer", bank_id: CEB.meta.bank_id, exported: new Date().toISOString(), ...CP })); toast("Progress file downloaded"); render(); }
-function ceImportProgress(file) { if (!file) return; file.text().then(t => { let X; try { X = JSON.parse(t); } catch (e) { toast("Not a valid JSON file."); return; }
-  if (X.module !== "computer_engineer" || !X.q) { toast(X.q && X.mistakes ? "That is a General Knowledge progress file — load it in General Knowledge → Progress & settings." : "That isn't a Computer Engineer progress file."); return; }
+const ceExport = () => exportAll();
+function ceMerge(X) { if (!X || X.module !== "computer_engineer" || !X.q) return false;
   for (const [id, s] of Object.entries(X.q)) { const m = CP.q[id]; if (!m || (s.la || 0) > (m.la || 0)) CP.q[id] = s; }
   const seen = new Set(CP.log.map(l => l[0] + l[1])); for (const l of X.log || []) if (!seen.has(l[0] + l[1])) CP.log.push(l); CP.log.sort((a, b) => a[1] - b[1]);
-  Object.assign(CP.marks, X.marks || {}); CP.sessions = [...CP.sessions, ...(X.sessions || [])].sort((a, b) => a.d - b.d);
+  Object.assign(CP.marks, X.marks || {}); { const ss = new Set(CP.sessions.map(s => JSON.stringify(s))); for (const s of X.sessions || []) if (!ss.has(JSON.stringify(s))) CP.sessions.push(s); CP.sessions.sort((a, b) => a.d - b.d); }
   const have = new Set(CP.imported.map(q => q.id)); for (const q of X.imported || []) if (!have.has(q.id)) CP.imported.push(q);
-  ceSave(); ceIndex(); toast("Progress loaded and merged"); render(); }); }
-function ceConfirmReset() { modal(`<h2>Reset Computer Engineer progress?</h2><p>This deletes Computer Engineer answers and history from this browser. General Knowledge progress is not touched.</p><div class="row" style="margin-top:16px"><button class="btn" onclick="ceExport()">Download first</button><button class="btn pri" style="background:var(--bad);border-color:var(--bad)" onclick="const im=CP.imported;CP=ceBlank();CP.imported=im;ceSave();closeModal();render();toast('Progress reset')">Reset</button><button class="btn ghost" onclick="closeModal()">Cancel</button></div>`); }
+  ceSave(); ceIndex(); return true; }
+const ceImportProgress = f => importAll(f);
+function ceConfirmReset() { modal(`<h2>Reset Computer Engineer progress?</h2><p>This deletes Computer Engineer answers and history from this browser. General Knowledge progress is not touched.</p><div class="row" style="margin-top:16px"><button class="btn" onclick="exportAll()">Download all progress first</button><button class="btn pri" style="background:var(--bad);border-color:var(--bad)" onclick="const im=CP.imported;CP=ceBlank();CP.imported=im;ceSave();closeModal();render();toast('Progress reset')">Reset</button><button class="btn ghost" onclick="closeModal()">Cancel</button></div>`); }
 
 // ------------------------------------------------------------------ attempted / weak / question list
 let CEB_F = { text: "", subj: "", st: "", page: 0 };
