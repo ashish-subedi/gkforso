@@ -485,7 +485,7 @@ function closeMenu() { $("#menu-root").innerHTML = ""; }
 document.addEventListener("click", e => { if (!e.target.closest(".more-menu")) closeMenu(); });
 function render() {
   renderNav();
-  const V = { home: vHome, ce_dash: vCeDash, ce_practice: vCePractice, ce_session: vCeSession, ce_results: vCeResults, ce_subjects: vCeSubjects, ce_subject: vCeSubject, ce_progress: vCeProgress, ce_attempted: vCeAttempted, ce_bank: vCeBank, ce_import: vCeImport, habit: vHabit, dash: vDash, quiz: vQuiz, session: vSession, results: vResults, revise: vRevise, bank: vBank, cats: vCats, cat: vCat, mistakes: vMistakes, analytics: vAnalytics, imports: vImports, review: vReview, settings: vSettings };
+  const V = { home: vHome, ce_dash: vCeDash, ce_practice: vCePractice, ce_session: vCeSession, ce_results: vCeResults, ce_subjects: vCeSubjects, ce_subject: vCeSubject, ce_progress: vCeProgress, ce_attempted: vCeAttempted, ce_bank: vCeBank, ce_analytics: vCeAnalytics, ce_import: vCeImport, habit: vHabit, dash: vDash, quiz: vQuiz, session: vSession, results: vResults, revise: vRevise, bank: vBank, cats: vCats, cat: vCat, mistakes: vMistakes, analytics: vAnalytics, imports: vImports, review: vReview, settings: vSettings };
   $("#app").innerHTML = (WARN && !isCE(route) ? `<div class="banner">${esc(WARN)}</div>` : "") + (V[route] || vDash)();
   if (afterRender) { const f = afterRender; afterRender = null; f(); }
   if (typeof hAnimate === "function") hAnimate();
@@ -906,10 +906,10 @@ function vAnalytics() {
     ${subs.map(s => `<div style="margin:14px 0 6px;font-weight:600">${esc(s.label)}</div><div class="heat">${s.topics.filter(t => t.qs.length).map(t => { const tg = gstats(t.qs), ok = tg.att >= 5;
       const i = ok ? Math.min(5, 1 + Math.floor(tg.acc * 5)) : 0; return `<div class="cell" style="background:${cols[i]};color:${i >= 4 ? "#fff" : "var(--ink)"}" onclick="go('cat','${s.key}')">${esc(t.label)}<b>${ok ? Math.round(tg.acc * 100) + "%" : "—"}</b><span style="opacity:.8">${tg.attempted}/${tg.total} tried</span></div>`; }).join("")}</div>`).join("")}</section>`;
 }
-function drawTrend(sel, qs) {
+function drawTrend(sel, qs, LOG) {
   const el = $(sel); if (!el) return; const ids = new Set(qs.map(q => q.id));
   const days = [...Array(30)].map((_, i) => sod(Date.now() - (29 - i) * DAY)), idx = new Map(days.map((d, i) => [dayKey(d), i])), ag = days.map(d => ({ d, n: 0, c: 0 }));
-  for (const [id, ts, r] of P.log) { if (r === -1 || !ids.has(id)) continue; const i = idx.get(dayKey(ts)); if (i != null) { ag[i].n++; if (r === 1) ag[i].c++; } }
+  for (const [id, ts, r] of (LOG || P.log)) { if (r === -1 || !ids.has(id)) continue; const i = idx.get(dayKey(ts)); if (i != null) { ag[i].n++; if (r === 1) ag[i].c++; } }
   if (!ag.some(a => a.n)) { el.innerHTML = `<p class="muted">Practise a few questions to see your trend.</p>`; return; }
   const W = 760, H = 210, L = 38, R = 10, T = 10, ph = 140, x = i => L + (W - L - R) * (i + .5) / 30;
   let path = "", on = false; const pts = ag.map((a, i) => a.n ? [x(i), T + ph - ph * a.c / a.n] : null); pts.forEach(p => { if (p) { path += (on ? "L" : "M") + p[0].toFixed(1) + "," + p[1].toFixed(1); on = true; } else on = false; });
@@ -1123,8 +1123,9 @@ function ceSubjects() {
 const ceTopics = qs => { const m = new Map(); for (const q of qs) { const t = q.topic || "General"; if (!m.has(t)) m.set(t, []); m.get(t).push(q); } return [...m.entries()].sort((a, b) => b[1].length - a[1].length); };
 
 // ------------------------------------------------------------------ CE nav
-const CE_NAV = [["Computer Engineer", [["ce_dash", "Home", "⌂", 1], ["habit", "Daily goal", "◎", 0], ["ce_practice", "Practice", "✎", 1], ["ce_subjects", "Subjects", "▦", 1], ["ce_progress", "Progress", "▤", 1]]],
-  ["Library", [["ce_attempted", "Attempted & weak", "↻", 0], ["ce_bank", "Question list", "☰", 0], ["ce_import", "Add questions", "⇣", 0]]]];
+const CE_NAV = [["Practice", [["ce_dash", "Home", "⌂", 1], ["habit", "Daily goal", "◎", 0], ["ce_practice", "Practice", "✎", 1], ["ce_attempted", "Attempted & weak", "↻", 1], ["ce_progress", "Progress", "◔", 1]]],
+  ["Library", [["ce_bank", "Question Bank", "☰", 0], ["ce_subjects", "Subjects", "▦", 0], ["ce_analytics", "Analytics", "▤", 0]]],
+  ["Manage", [["ce_import", "Add questions", "⇣", 0]]]];
 const isCE = r => String(r).startsWith("ce_");
 
 // ------------------------------------------------------------------ landing: choose a module
@@ -1334,15 +1335,17 @@ function vCeSubjects() {
   const subs = ceSubjects();
   return `<h1>Subjects</h1><p class="sub">Questions are grouped by what they actually test, not only by the book they came from.</p>
   <section class="block"><div class="tw"><table><tr><th>Subject</th><th class="n">Questions</th><th class="n">Attempted</th><th class="n">Accuracy</th><th class="n">Weak</th><th class="n">Mastered</th><th></th></tr>
-  ${subs.map(s => { const g = ceStats(s.qs); return `<tr class="click" onclick="go('ce_subject','${s.key}')"><td><b>${esc(s.label)}</b></td><td class="n">${s.qs.length}</td><td class="n">${g.att}</td><td class="n">${g.ans ? fp(Math.round(g.acc * 100)) : "—"}</td><td class="n">${g.weak}</td><td class="n">${g.mast}</td><td><button class="btn sm" onclick="event.stopPropagation();ceQuick('subj',20,'${s.key}')">Practise</button></td></tr>`; }).join("")}</table></div></section>`;
+  ${subs.map(s => { const g = ceStats(s.qs); return `<tr class="click" onclick="go('ce_subject','${s.key}')"><td><b>${esc(s.label)}</b></td><td class="n">${s.qs.length}</td><td class="n">${g.att} <span class="faint">(${Math.round(100 * g.att / s.qs.length)}%)</span></td><td class="n">${g.ans ? fp(Math.round(g.acc * 100)) : "—"}</td><td class="n">${g.weak}</td><td class="n">${g.mast}</td><td><button class="btn sm" onclick="event.stopPropagation();ceQuick('subj',20,'${s.key}')">Practise</button></td></tr>`; }).join("")}</table></div></section>`;
 }
 function vCeSubject() {
   const s = ceSubjects().find(x => x.key === arg); if (!s) return vCeSubjects();
   const g = ceStats(s.qs), tops = ceTopics(s.qs);
+  afterRender = () => drawTrend("#cestrend", s.qs, CP.log);
   return `<p><a href="#" onclick="go('ce_subjects');return false">← Subjects</a></p><h1>${esc(s.label)}</h1><p class="sub">${s.qs.length} questions · ${s.ok.length} ready to practise</p>
   <section class="block lead"><div class="stats"><div><div class="big num">${g.att}</div><div class="l">attempted</div></div><div><div class="big num">${fp(g.acc == null ? null : Math.round(g.acc * 100))}</div><div class="l">accuracy</div></div><div><div class="big num">${g.weak}</div><div class="l">weak</div></div><div><div class="big num">${g.mast}</div><div class="l">mastered</div></div></div>
   <div class="row" style="margin-top:16px"><button class="btn pri" onclick="CEC={...ceDefault(),mode:'subj',subj:'${s.key}'};go('ce_practice')">Practise this subject</button>${g.weak ? `<button class="btn" onclick="CEC={...ceDefault(),mode:'weak',weakBy:'s',subj:'${s.key}'};ceStart()">Practise weak ones</button>` : ""}</div></section>
-  <section class="block"><h2>Topics</h2><table><tr><th>Topic</th><th class="n">Questions</th><th class="n">Accuracy</th><th></th></tr>${tops.map(([t, qs]) => { const gg = ceStats(qs); return `<tr><td>${esc(t)}</td><td class="n">${qs.length}</td><td class="n">${gg.ans ? fp(Math.round(gg.acc * 100)) : "—"}</td><td><button class="btn sm" onclick="CEC={...ceDefault(),mode:'subj',subj:'${s.key}',topic:${JSON.stringify(t).replace(/"/g, "&quot;")}};go('ce_practice')">Practise</button></td></tr>`; }).join("")}</table></section>`;
+  <section class="block"><h2>Accuracy over time</h2><div id="cestrend"></div></section>
+  <section class="block"><h2>Topics</h2><div class="tw"><table><tr><th>Topic</th><th class="n">Questions</th><th class="n">Attempted</th><th class="n">Accuracy</th><th class="n">Weak</th><th></th></tr>${tops.map(([t, qs]) => { const gg = ceStats(qs); return `<tr><td><a href="#" onclick="CEB_F={...CEB_BLANK(),subj:'${s.key}',topic:${JSON.stringify(t).replace(/"/g, "&quot;")}};go('ce_bank');return false">${esc(t)}</a></td><td class="n">${qs.length}</td><td class="n">${gg.att}</td><td class="n">${gg.ans ? fp(Math.round(gg.acc * 100)) : "—"}</td><td class="n">${gg.weak || ""}</td><td><button class="btn sm" onclick="CEC={...ceDefault(),mode:'subj',subj:'${s.key}',topic:${JSON.stringify(t).replace(/"/g, "&quot;")}};go('ce_practice')">Practise</button></td></tr>`; }).join("")}</table></div></section>`;
 }
 
 // ------------------------------------------------------------------ progress
@@ -1377,31 +1380,79 @@ const ceImportProgress = f => importAll(f);
 function ceConfirmReset() { modal(`<h2>Reset Computer Engineer progress?</h2><p>This deletes Computer Engineer answers and history from this browser. General Knowledge progress is not touched.</p><div class="row" style="margin-top:16px"><button class="btn" onclick="exportAll()">Download all progress first</button><button class="btn pri" style="background:var(--bad);border-color:var(--bad)" onclick="const im=CP.imported;CP=ceBlank();CP.imported=im;ceSave();closeModal();render();toast('Progress reset')">Reset</button><button class="btn ghost" onclick="closeModal()">Cancel</button></div>`); }
 
 // ------------------------------------------------------------------ attempted / weak / question list
-let CEB_F = { text: "", subj: "", st: "", page: 0 };
+let CEB_F = { text: "", subj: "", topic: "", src: "", st: "", page: 0 };
 function vCeAttempted() {
   const by = k => CEQ.filter(q => { const s = CP.q[q.id]; return k === "wrong" ? s && s.w > 0 : k === "unsure" ? s && s.un > 0 : k === "weak" ? ceStatus(q.id) === "Weak" : k === "never" ? !(s && s.a) : k === "marked" ? CP.marks[q.id] : s && s.a; });
   const rows = [["wrong", "Answered incorrectly at least once"], ["weak", "Weak (last answer wrong or under 60%)"], ["unsure", "Marked unsure / confusing"], ["marked", "Marked for review"], ["all", "All attempted"], ["never", "Never answered"]];
   return `<h1>Attempted & weak questions</h1><p class="sub">Go back over what you have tried, or pick up what you have not seen yet.</p>
-  <section class="block"><table>${rows.map(([k, l]) => { const n = by(k).filter(ceOK).length; return `<tr><td>${l}</td><td class="n">${n.toLocaleString()}</td><td style="text-align:right"><button class="btn sm" ${n ? "" : "disabled"} onclick="CEC={...ceDefault(),mode:'${k === "weak" ? "weak" : "att"}',att:'${k === "weak" ? "wrong" : k}'};go('ce_practice')">Practise</button> <button class="btn sm ghost" ${n ? "" : "disabled"} onclick="CEB_F={text:'',subj:'',st:'${k}',page:0};go('ce_bank')">View list</button></td></tr>`; }).join("")}</table></section>`;
+  <section class="block"><table>${rows.map(([k, l]) => { const n = by(k).filter(ceOK).length; return `<tr><td>${l}</td><td class="n">${n.toLocaleString()}</td><td style="text-align:right"><button class="btn sm" ${n ? "" : "disabled"} onclick="CEC={...ceDefault(),mode:'${k === "weak" ? "weak" : "att"}',att:'${k === "weak" ? "wrong" : k}'};go('ce_practice')">Practise</button> <button class="btn sm ghost" ${n ? "" : "disabled"} onclick="CEB_F={...CEB_BLANK(),st:'${k}'};go('ce_bank')">View list</button></td></tr>`; }).join("")}</table></section>`;
 }
+const CEB_BLANK = () => ({ text: "", subj: "", topic: "", src: "", st: "", page: 0 });
+const ceBook = q => ((q.sources || [])[0] || {}).book || ((q.sources || [])[0] || {}).file || "Unknown source";
 function ceFilter() {
-  const F = CEB_F, t = ceNorm(F.text);
+  const F = CEB_F, t = ceNorm(F.text).split(" ").filter(Boolean);
   return CEQ.filter(q => { const s = CP.q[q.id];
     if (F.subj && q.subject !== F.subj) return false;
-    if (F.st) { const k = F.st; if (k === "wrong" && !(s && s.w)) return false; if (k === "unsure" && !(s && s.un)) return false; if (k === "weak" && ceStatus(q.id) !== "Weak") return false; if (k === "never" && s && s.a) return false; if (k === "marked" && !CP.marks[q.id]) return false; if (k === "all" && !(s && s.a)) return false; if (k === "mastered" && ceStatus(q.id) !== "Mastered") return false; if (k === "flag" && ceOK(q)) return false; }
-    return !t || (q._b || (q._b = ceNorm([q.id, q.question, q.options.map(o => o.text).join(" "), q.topic, (q.notes || {}).explanation].join(" ")))).includes(t); });
+    if (F.topic && (q.topic || "General") !== F.topic) return false;
+    if (F.src && !(q.sources || []).some(x => (x.book || x.file) === F.src)) return false;
+    if (F.st) { const k = F.st; if (k === "wrong" && !(s && s.w)) return false; if (k === "unsure" && !(s && s.un)) return false; if (k === "weak" && ceStatus(q.id) !== "Weak") return false; if (k === "never" && s && s.a) return false; if (k === "marked" && !CP.marks[q.id]) return false; if (k === "all" && !(s && s.a)) return false; if (k === "mastered" && ceStatus(q.id) !== "Mastered") return false; if (k === "learning" && ceStatus(q.id) !== "Learning") return false; if (k === "flag" && ceOK(q)) return false; }
+    if (!t.length) return true;
+    const bl = q._b || (q._b = ceNorm([q.id, q.question, q.options.map(o => o.text).join(" "), q.topic, ceSubjLabel(q.subject), (q.notes || {}).explanation, (q.sources || []).map(x => x.book || x.file).join(" ")].join(" ")));
+    return t.every(w => bl.includes(w)); });
 }
 function vCeBank() {
   const F = CEB_F, qs = ceFilter(), per = 40, pages = Math.max(1, Math.ceil(qs.length / per)); F.page = Math.min(F.page, pages - 1);
   const subs = ceSubjects(), sl = qs.slice(F.page * per, F.page * per + per);
+  const topics = [...new Set(CEQ.filter(q => !F.subj || q.subject === F.subj).map(q => q.topic || "General"))].sort((a, b) => a.localeCompare(b));
+  const books = [...new Set(CEQ.flatMap(q => (q.sources || []).map(x => x.book || x.file)).filter(Boolean))].sort();
+  const sel = (k, v, opts, any) => `<select onchange="CEB_F.${k}=this.value;CEB_F.page=0;${k === "subj" ? "CEB_F.topic='';" : ""}render()"><option value="">${any}</option>${opts.map(([a, b]) => `<option value="${esc(a)}" ${v === a ? "selected" : ""}>${esc(b)}</option>`).join("")}</select>`;
+  const ready = qs.filter(ceOK).length;
   afterRender = () => { const el = $("#ceq"); if (el && F.focus) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); F.focus = false; } };
-  return `<h1>Question list</h1><p class="sub">${qs.length.toLocaleString()} of ${CEQ.length.toLocaleString()} questions</p>
-  <section class="block"><input id="ceq" type="search" placeholder="Search question, option or explanation…" value="${esc(F.text)}" style="width:100%;font-size:17px" oninput="CEB_F.text=this.value;CEB_F.page=0;CEB_F.focus=true;render()">
-  <div class="row" style="margin-top:12px"><select onchange="CEB_F.subj=this.value;CEB_F.page=0;render()"><option value="">All subjects</option>${subs.map(s => `<option value="${s.key}" ${F.subj === s.key ? "selected" : ""}>${esc(s.label)}</option>`).join("")}</select>
-  <select onchange="CEB_F.st=this.value;CEB_F.page=0;render()">${[["", "Any status"], ["never", "Never answered"], ["all", "Attempted"], ["wrong", "Answered incorrectly"], ["weak", "Weak"], ["unsure", "Unsure"], ["mastered", "Mastered"], ["marked", "Marked for review"], ["flag", "Not in quizzes (needs checking)"]].map(([v, l]) => `<option value="${v}" ${F.st === v ? "selected" : ""}>${l}</option>`).join("")}</select>
-  ${qs.filter(ceOK).length ? `<button class="btn sm pri" onclick="ceBegin({label:'Question list selection',explain:'now',time:0,neg:0,mode:'full'},cePick(ceFilter().filter(ceOK),50))">Practise up to 50 of these</button>` : ""}</div></section>
-  <section class="block"><div class="list">${sl.map(q => `<div class="it" onclick="ceShow('${q.id}')"><div class="row"><span class="faint num">${q.id}</span><span class="tag">${esc(ceSubjLabel(q.subject))}</span>${ceStatusTag(q)}${ceOK(q) ? "" : `<span class="tag warn">Not in quizzes</span>`}</div><div style="margin-top:4px">${ceTxt(q.question.split("\n")[0].slice(0, 200))}</div></div>`).join("") || `<div class="empty">No questions match.</div>`}</div>
-  ${pages > 1 ? `<div class="row" style="margin-top:14px;justify-content:center"><button class="btn sm" ${F.page ? "" : "disabled"} onclick="CEB_F.page--;render();scrollTo(0,0)">← Previous</button><span class="faint">Page ${F.page + 1} of ${pages}</span><button class="btn sm" ${F.page < pages - 1 ? "" : "disabled"} onclick="CEB_F.page++;render();scrollTo(0,0)">Next →</button></div>` : ""}</section>`;
+  return `<h1>Question Bank</h1><p class="sub">${CEQ.length.toLocaleString()} Computer Engineer questions. Search by words in the question, options, explanation, topic or book.</p>
+  <section class="block"><input id="ceq" type="search" placeholder="Search question, option, explanation, topic, source…" value="${esc(F.text)}" style="width:100%;font-size:17px"
+    oninput="clearTimeout(window._cbt);window._cbt=setTimeout(()=>{CEB_F.text=this.value;CEB_F.page=0;CEB_F.focus=true;render()},250)">
+  <div class="row" style="margin-top:12px">
+    ${sel("subj", F.subj, subs.map(s => [s.key, s.label]), "All subjects")}
+    ${sel("topic", F.topic, topics.map(t => [t, t]), "All topics")}
+    ${sel("st", F.st, [["never", "Never answered"], ["all", "Attempted"], ["wrong", "Answered incorrectly"], ["weak", "Weak"], ["learning", "Learning"], ["mastered", "Mastered"], ["unsure", "Unsure"], ["marked", "Marked for review"], ["flag", "Not in quizzes (needs checking)"]], "Any status")}
+    <details style="display:inline-block"><summary class="faint">More filters</summary><div class="row" style="margin-top:8px">${sel("src", F.src, books.map(b => [b, b.length > 60 ? b.slice(0, 60) + "…" : b]), "Any source")}</div></details>
+    <button class="btn sm ghost" onclick="CEB_F=CEB_BLANK();render()">Reset</button></div></section>
+  <div class="spread" style="margin:4px 2px 10px"><span class="muted">${qs.length.toLocaleString()} result${qs.length === 1 ? "" : "s"}${qs.length !== ready ? ` · ${ready.toLocaleString()} ready for quizzes` : ""}</span>
+    <span class="row"><button class="btn sm" ${ready ? "" : "disabled"} onclick="ceBegin({label:'Question Bank selection',explain:'now',time:0,neg:0,mode:'full'},cePick(ceFilter().filter(ceOK),50))">Quiz these</button><button class="btn sm" ${qs.length ? "" : "disabled"} onclick="ceExportCSV()">Export CSV</button></span></div>
+  <section class="block" style="padding-top:6px;padding-bottom:6px"><div class="list">${sl.map(q => `<div class="it" onclick="ceShow('${q.id}')"><div style="font-size:17px">${ceTxt(q.question.split("\n")[0].slice(0, 220))}</div>
+    <div class="row" style="gap:8px;margin-top:4px"><span class="faint">→ <b style="color:var(--ink)">${esc(ceAns(q) || "—")}</b></span><span class="tag">${esc(ceSubjLabel(q.subject))}</span>${q.topic ? `<span class="tag">${esc(q.topic)}</span>` : ""}${ceStatusTag(q)}${CP.q[q.id] && CP.q[q.id].a ? `<span class="faint">${pct(CP.q[q.id].c, CP.q[q.id].a)}%</span>` : ""}${ceOK(q) ? "" : `<span class="tag warn">Not in quizzes</span>`}<span class="faint num">${q.id}</span></div></div>`).join("") || `<div class="empty">No questions match.</div>`}</div></section>
+  ${pages > 1 ? `<div class="row" style="justify-content:center"><button class="btn sm" ${F.page ? "" : "disabled"} onclick="CEB_F.page--;render();scrollTo(0,0)">← Prev</button><span class="faint">Page ${F.page + 1} of ${pages}</span><button class="btn sm" ${F.page < pages - 1 ? "" : "disabled"} onclick="CEB_F.page++;render();scrollTo(0,0)">Next →</button></div>` : ""}`;
+}
+function ceExportCSV() {
+  const c = v => `"${String(v ?? "").replace(/"/g, '""')}"`, L = "ABCDEF";
+  const rows = ceFilter().map(q => [q.id, ceSubjLabel(q.subject), q.topic || "", q.question, ...[0, 1, 2, 3].map(i => (q.options[i] || {}).text || ""), q.answer_key, ceAns(q), ceStatus(q.id), ceOK(q) ? "" : "needs checking", ceBook(q)].map(c).join(","));
+  dl("computer_questions.csv", "﻿id,subject,topic,question,A,B,C,D,answer,answer_text,status,review,source\n" + rows.join("\n"), "text/csv");
+}
+
+// ------------------------------------------------------------------ analytics
+function vCeAnalytics() {
+  const qs = CEQ, g = ceStats(qs), now = Date.now();
+  const st = ["New", "Learning", "Weak", "Mastered"], sc = Object.fromEntries(st.map(x => [x, 0])); for (const q of qs) sc[ceStatus(q.id)]++;
+  const stc = ["var(--soft)", "var(--s2)", "var(--bad)", "var(--s6)"];
+  const wk = (a, b) => { const l = CP.log.filter(x => x[1] >= now - a * DAY && x[1] < now - b * DAY); return { n: l.length, acc: l.length ? Math.round(100 * l.filter(x => x[2] === 1).length / l.length) : null }; };
+  const w1 = wk(7, 0), w2 = wk(14, 7); const seen = new Set(); let fa = 0, fc = 0, ra = 0, rc = 0;
+  for (const [id, , r] of CP.log) { if (!seen.has(id)) { seen.add(id); fa++; if (r === 1) fc++; } else { ra++; if (r === 1) rc++; } }
+  const cols = ["var(--soft)", "var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s6)"];
+  const subs = ceSubjects().map(s => ({ ...s, g: ceStats(s.qs) })).sort((a, b) => b.g.att - a.g.att || b.qs.length - a.qs.length);
+  afterRender = () => drawTrend("#cetrend", qs, CP.log);
+  return `<h1>Analytics</h1><p class="sub">How your Computer Engineer preparation is going overall. Open a subject for its own detail.</p>
+  <section class="block"><div class="stats">
+    <div><div class="big num">${fp(w1.acc)}</div><div class="l">this week · ${w1.n} answers${w1.acc != null && w2.acc != null ? ` · ${w1.acc - w2.acc >= 0 ? "+" : ""}${w1.acc - w2.acc} pts` : ""}</div></div>
+    <div><div class="big num">${fp(pct(rc, ra))}</div><div class="l">on repeat attempts (first try ${fp(pct(fc, fa))})</div></div>
+    <div><div class="big num">${g.att.toLocaleString()}</div><div class="l">of ${g.total.toLocaleString()} attempted</div></div></div></section>
+  <section class="block"><h2>Learning progress</h2><div style="display:flex;height:16px;border-radius:8px;overflow:hidden;gap:2px">${st.map((x, i) => sc[x] ? `<div title="${x}: ${sc[x]}" style="flex:${sc[x]};background:${stc[i]}"></div>` : "").join("")}</div>
+    <div class="row" style="margin-top:10px">${st.map((x, i) => `<span class="faint" style="display:inline-flex;align-items:center;gap:6px"><span class="dot" style="background:${stc[i]};border:1px solid var(--line)"></span>${x} ${sc[x].toLocaleString()}</span>`).join("")}</div></section>
+  <section class="block"><h2>Daily accuracy — last 30 days</h2><div id="cetrend"></div></section>
+  <section class="block"><h2>Knowledge map</h2><p class="faint" style="margin-top:-6px">Darker means higher accuracy; grey means fewer than 5 answers. Topics with at least 5 questions are shown. Click a topic to open its subject.</p>
+    ${subs.map((s, si) => { const tops = ceTopics(s.qs).filter(([, tq]) => tq.length >= 5); const sg = s.g;
+      return `<details ${si < 2 && sg.att ? "open" : ""} style="margin:12px 0"><summary style="font-weight:600;cursor:pointer">${esc(s.label)} <span class="faint" style="font-weight:400">· ${sg.att}/${s.qs.length} tried${sg.ans >= 5 ? ` · ${Math.round(sg.acc * 100)}%` : ""}</span></summary>
+      ${tops.length ? `<div class="heat" style="margin-top:8px">${tops.map(([t, tq]) => { const tg = ceStats(tq), ok = tg.ans >= 5, i = ok ? Math.min(5, 1 + Math.floor(tg.acc * 5)) : 0;
+        return `<div class="cell" style="background:${cols[i]};color:${i >= 4 ? "#fff" : "var(--ink)"}" onclick="go('ce_subject','${s.key}')">${esc(t)}<b>${ok ? Math.round(tg.acc * 100) + "%" : "—"}</b><span style="opacity:.8">${tg.att}/${tq.length} tried</span></div>`; }).join("")}</div>` : `<p class="faint">No topic has 5 or more questions yet.</p>`}</details>`; }).join("")}</section>`;
 }
 function ceStatusTag(q) { const s = ceStatus(q.id); return s === "New" ? "" : `<span class="tag ${s === "Weak" ? "bad" : s === "Mastered" ? "ok" : "acc"}">${s}</span>`; }
 function ceShow(id) {
