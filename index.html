@@ -20,6 +20,44 @@ button,input,select,textarea{font:inherit;color:inherit}
 a{color:var(--accent-2);text-decoration:none}
 a:hover{text-decoration:underline}
 :focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+/* Daily goal (habit tracker) */
+:root{--h-gk:#163a7a;--h-ce:#0d7a6f;--h-done:#2b5fb8}
+.hring{display:block}.hr-arc{transition:stroke-dashoffset .9s cubic-bezier(.3,.7,.2,1)}
+.hbar{flex:1;height:9px;background:var(--soft);border-radius:5px;overflow:hidden}.hbar>i{display:block;height:100%;border-radius:5px;transition:width .9s cubic-bezier(.3,.7,.2,1)}
+.hside{display:flex;gap:10px;align-items:center;width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:8px 10px;margin:0 0 12px;color:#fff;text-align:left;cursor:pointer;font-size:13.5px;line-height:1.35}
+.hside:hover{background:rgba(255,255,255,.14)}.hside b{font-size:15px}.hs2{opacity:.8;font-size:12.5px}
+.hhome{display:flex;gap:18px;align-items:center;flex-wrap:wrap}.hh-ring{position:relative;flex:none}.hh-pct{position:absolute;inset:0;display:grid;place-items:center;font-weight:700;font-size:21px;color:var(--ink)}
+.hh-body{flex:1;min-width:220px}.hh-top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.hh-top b{font-size:18px}
+.hh-sub{display:flex;gap:16px;flex-wrap:wrap;font-size:14.5px;color:var(--ink2);margin-top:4px;align-items:center}.hh-msg{margin-top:6px;font-size:14.5px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.hh-s{display:inline-grid;place-items:center;min-width:24px;height:22px;padding:0 5px;border-radius:6px;font-size:12px;font-weight:700;margin-right:3px;background:var(--soft);color:var(--ink3)}
+.hh-s.done{background:var(--ok);color:#fff}.hh-s.partial{background:var(--warn-soft);color:var(--warn)}.hh-s.missed{background:var(--bad-soft);color:var(--bad)}.hh-s.now{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent-2)}
+.hhero{display:grid;grid-template-columns:auto 1fr;gap:30px;align-items:center}
+.hh-main{position:relative;width:188px;height:188px}.hm-in{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.hm-n{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1}.hm-n span{font-size:17px;font-weight:500;color:var(--ink3);margin-left:4px;letter-spacing:0}.hm-p{color:var(--ink2);font-size:14px;margin-top:6px}
+.hsubjs{display:flex;gap:28px;flex-wrap:wrap}.hsubj{display:flex;gap:12px;align-items:center}.hs-n{font-size:15px;color:var(--ink3)}.hs-n b{font-size:24px;color:var(--ink)}.hs-l{font-weight:600}
+.hnow{margin-top:14px}.hfocus{margin-top:8px;color:var(--warn);font-weight:600;font-size:15px}
+.hmsgs{margin:10px 0 0;padding:0;list-style:none}.hmsgs li{padding:3px 0 3px 18px;position:relative;font-size:15px}.hmsgs li:before{content:"";position:absolute;left:3px;top:12px;width:7px;height:7px;border-radius:50%;background:var(--h-done)}
+.hstreak{display:flex;gap:26px;margin:14px 0;flex-wrap:wrap}.hstreak div{display:flex;flex-direction:column}.hstreak b{font-size:24px;line-height:1.1}.hstreak span{font-size:13px;color:var(--ink3)}
+.btn.pri.hce{background:#0d5c55;border-color:#0d5c55}.btn.pri.hce:hover{background:#11756c;border-color:#11756c}
+.hsec{margin:22px 0 10px;font-size:19px}
+.hsessions{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.hsess{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.hsess.cur{border-color:var(--accent-2);box-shadow:0 0 0 1px var(--accent-2)}
+.hsess.done{background:linear-gradient(var(--ok-soft),var(--surface) 70%);border-color:#9cc9ad}
+.hsess.missed{opacity:.82}.hsess.pending{background:var(--bg)}
+.hsess.just{animation:hpop 1.2s ease}@keyframes hpop{0%{transform:scale(1)}30%{transform:scale(1.025);box-shadow:0 0 0 6px rgba(21,112,58,.18)}100%{transform:scale(1)}}
+.hs-big{margin:10px 0 6px;font-size:15px;color:var(--ink3)}.hs-big b{font-size:28px;color:var(--ink)}
+.hs-row{display:flex;gap:10px;align-items:center;font-size:14px;margin:6px 0}.hs-row>span:first-child{width:72px;color:var(--ink2)}.hs-c{width:62px;text-align:right;font-variant-numeric:tabular-nums}
+.hs-foot{font-size:13.5px;color:var(--ink2);margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.hstats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}.hstat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column}
+.hstat b{font-size:22px;line-height:1.2}.hstat span{font-size:12.5px;color:var(--ink3)}
+.hheat{width:100%;height:auto}.hm-t{font-size:9px;fill:var(--ink3)}
+.hl0,.hlx{fill:var(--soft);background:var(--soft)}.hlx{fill:transparent;stroke:var(--line);stroke-width:.6}.hl1{fill:#d7e1f2;background:#d7e1f2}.hl2{fill:#a9bfe4;background:#a9bfe4}.hl3{fill:#6f93cf;background:#6f93cf}.hl4{fill:#3a64ad;background:#3a64ad}.hl5{fill:var(--ok);background:var(--ok)}
+.hl-today{stroke:var(--ink);stroke-width:1.5}
+.hlegend{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--ink3);margin-top:6px;flex-wrap:wrap}.hlegend i{display:inline-block;width:11px;height:11px;border-radius:2px}
+.hchart{width:100%;height:auto}.h-tl{stroke:var(--ink3);stroke-dasharray:4 3;stroke-width:1}.h-tlk{display:inline-block;width:16px;border-top:1.5px dashed var(--ink3)}
+@media (max-width:860px){.hhero{grid-template-columns:1fr;justify-items:center}.hh-side{width:100%}.hsessions{grid-template-columns:1fr}.hstats{grid-template-columns:repeat(2,1fr)}.hsubjs{gap:14px;flex-wrap:nowrap}.hsubj{gap:8px}.hsubj svg{width:52px;height:52px}.hs-n b{font-size:21px}.hhero{gap:18px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 /* ---------- shell: sidebar + content ---------- */
 .shell{display:grid;grid-template-columns:var(--side) 1fr;min-height:100vh}
@@ -352,7 +390,7 @@ function computeStatus(s) {
   return "Learning";
 }
 function newState() { return { a: 0, c: 0, w: 0, sk: 0, st: 0, iv: 0, due: 0, la: 0, lc: 0, lapses: 0, ms: 0, msn: 0, days: [], delayed: false, diff: 0, unsure: 0 }; }
-function record(q, result, chosen, ms, mode, unsure) {
+function record(q, result, chosen, ms, mode, unsure, at) {
   const now = Date.now(), S = P.settings, s = P.q[q.id] || (P.q[q.id] = newState()), prev = s.status;
   if (result === -1) { s.sk++; s.due = Math.min(s.due || now, now); }
   else {
@@ -373,7 +411,7 @@ function record(q, result, chosen, ms, mode, unsure) {
     }
   }
   s.status = s.a ? computeStatus(s) : undefined;
-  P.log.push([q.id, now, result, chosen || "", ms || 0, mode, unsure ? 1 : 0]);
+  P.log.push([q.id, at && at <= now ? at : now, result, chosen || "", ms || 0, mode, unsure ? 1 : 0]);
   if (P.log.length > 60000) P.log = P.log.slice(-50000);
 }
 const forgetRisk = id => { const s = P.q[id]; return (!s || !s.a || !s.st || !s.iv) ? 0 : (Date.now() - s.lc) / (s.iv * DAY); };
@@ -415,8 +453,8 @@ function subjectsPresent() {
 
 // ------------------------------------------------------------------ navigation
 // [key, label, icon, shown in the mobile tab bar]
-const NAV_GROUPS = [["Practice", [["dash", "Home", "⌂", 1], ["quiz", "Quiz Centre", "✎", 1], ["revise", "Revision", "↻", 1], ["mistakes", "Mistake Book", "✕", 0]]],
-  ["Library", [["bank", "Question Bank", "☰", 1], ["cats", "Categories", "▦", 0], ["analytics", "Analytics", "▤", 0]]],
+const NAV_GROUPS = [["Practice", [["dash", "Home", "⌂", 1], ["habit", "Daily goal", "◎", 1], ["quiz", "Quiz Centre", "✎", 1], ["revise", "Revision", "↻", 1], ["mistakes", "Mistake Book", "✕", 0]]],
+  ["Library", [["bank", "Question Bank", "☰", 0], ["cats", "Categories", "▦", 0], ["analytics", "Analytics", "▤", 0]]],
   ["Manage", [["imports", "Import Centre", "⇣", 0], ["review", "Review Required", "⚑", 0], ["settings", "Settings", "⚙", 0]]]];
 const PUBLIC = !!(DATA.meta && DATA.meta.public);
 if (PUBLIC) NAV_GROUPS[2][1] = [["settings", "Progress & settings", "⚙", 0]];
@@ -434,9 +472,10 @@ function renderNav() {
   $("#nav").innerHTML = GROUPS.map(([g, items]) => `<div class="grp">${g}</div>` + items.map(([k, l, ic, mob]) =>
     `<button class="${on(k) ? "on" : ""} ${mob ? "" : "dk"}" onclick="go('${k}')" ${on(k) ? 'aria-current="page"' : ""}><span class="ic" aria-hidden="true">${ic}</span>${l}${k === "review" && flagged ? `<span class="cnt">${flagged}</span>` : ""}</button>`).join("")).join("")
     + `<button class="mob ${GROUPS.flatMap(g => g[1]).some(n => !n[3] && on(n[0])) ? "on" : ""}" onclick="toggleMenu(event)"><span class="ic" aria-hidden="true">⋯</span>More</button>`;
-  if (ce) { $("#sidefoot").innerHTML = `<div class="sf-btns"><button onclick="exportAll()">Download all progress</button><label>Load all progress<input type="file" accept=".json" style="display:none" onchange="importAll(this.files[0])"></label></div>${CEQ.length.toLocaleString()} questions<br>One file backs up both modules`; return; }
+  const hw = typeof hSideWidget === "function" ? hSideWidget() : "";
+  if (ce) { $("#sidefoot").innerHTML = hw + `<div class="sf-btns"><button onclick="exportAll()">Download all progress</button><label>Load all progress<input type="file" accept=".json" style="display:none" onchange="importAll(this.files[0])"></label></div>${CEQ.length.toLocaleString()} questions<br>One file backs up both modules`; return; }
   const real = ALLQ.filter(q => !q.is_sample).length;
-  $("#sidefoot").innerHTML = `<div class="sf-btns"><button onclick="exportAll()">Download all progress</button><label>Load all progress<input type="file" accept=".json" style="display:none" onchange="importAll(this.files[0])"></label></div>${real.toLocaleString()} questions<br>Updated ${esc(fdate(Date.parse((DATA.meta || {}).updated || "") || 0))}`;
+  $("#sidefoot").innerHTML = hw + `<div class="sf-btns"><button onclick="exportAll()">Download all progress</button><label>Load all progress<input type="file" accept=".json" style="display:none" onchange="importAll(this.files[0])"></label></div>${real.toLocaleString()} questions<br>Updated ${esc(fdate(Date.parse((DATA.meta || {}).updated || "") || 0))}`;
 }
 function toggleMenu(e) { e.stopPropagation(); const r = $("#menu-root"); if (r.innerHTML) { closeMenu(); return; }
   const flagged = ALLQ.filter(q => (q.review_flags || []).length).length;
@@ -446,9 +485,10 @@ function closeMenu() { $("#menu-root").innerHTML = ""; }
 document.addEventListener("click", e => { if (!e.target.closest(".more-menu")) closeMenu(); });
 function render() {
   renderNav();
-  const V = { home: vHome, ce_dash: vCeDash, ce_practice: vCePractice, ce_session: vCeSession, ce_results: vCeResults, ce_subjects: vCeSubjects, ce_subject: vCeSubject, ce_progress: vCeProgress, ce_attempted: vCeAttempted, ce_bank: vCeBank, ce_import: vCeImport, dash: vDash, quiz: vQuiz, session: vSession, results: vResults, revise: vRevise, bank: vBank, cats: vCats, cat: vCat, mistakes: vMistakes, analytics: vAnalytics, imports: vImports, review: vReview, settings: vSettings };
+  const V = { home: vHome, ce_dash: vCeDash, ce_practice: vCePractice, ce_session: vCeSession, ce_results: vCeResults, ce_subjects: vCeSubjects, ce_subject: vCeSubject, ce_progress: vCeProgress, ce_attempted: vCeAttempted, ce_bank: vCeBank, ce_import: vCeImport, habit: vHabit, dash: vDash, quiz: vQuiz, session: vSession, results: vResults, revise: vRevise, bank: vBank, cats: vCats, cat: vCat, mistakes: vMistakes, analytics: vAnalytics, imports: vImports, review: vReview, settings: vSettings };
   $("#app").innerHTML = (WARN && !isCE(route) ? `<div class="banner">${esc(WARN)}</div>` : "") + (V[route] || vDash)();
   if (afterRender) { const f = afterRender; afterRender = null; f(); }
+  if (typeof hAnimate === "function") hAnimate();
 }
 
 // ------------------------------------------------------------------ queues
@@ -672,7 +712,7 @@ function vSession() {
 function pick(k) {
   const S = SESSION, it = cur(), q = QMAP.get(it.id);
   if (it.locked) return;
-  tickItem(); it.chosen = k;
+  tickItem(); it.chosen = k; it.at = Date.now();
   if (S.cfg.explain === "now") { it.locked = true; record(q, k === q.answer_key ? 1 : 0, k, it.ms, S.cfg.mode); saveP(); }
   render();
 }
@@ -700,7 +740,7 @@ function finish() {
   const S = SESSION; if (!S) return; clearInterval(TICK); if (route === "session") tickItem();
   const prevHist = {};
   for (const it of S.items) { const q = QMAP.get(it.id); const before = P.log.filter(l => l[0] === it.id && l[1] < S.start && l[2] !== -1); prevHist[it.id] = [before.filter(l => l[2] === 1).length, before.filter(l => l[2] === 0).length];
-    if (!it.locked) { it.result = it.chosen ? (it.chosen === q.answer_key ? 1 : 0) : -1; record(q, it.result, it.chosen, it.ms, S.cfg.mode); }
+    if (!it.locked) { it.result = it.chosen ? (it.chosen === q.answer_key ? 1 : 0) : -1; record(q, it.result, it.chosen, it.ms, S.cfg.mode, false, it.chosen ? it.at : 0); }
     else it.result = it.chosen === q.answer_key ? 1 : 0; }
   const c = S.items.filter(x => x.result === 1).length, w = S.items.filter(x => x.result === 0).length;
   const sess = { id: S.id, ts: S.start, end: Date.now(), mode: S.cfg.mode, label: S.cfg.label, cfg: S.cfg, n: S.items.length, correct: c, wrong: w, skipped: S.items.length - c - w,
@@ -997,6 +1037,7 @@ function dl(name, text, type = "application/json") { const a = document.createEl
 function exportAll() { const now = Date.now(), out = { format: "psc-progress-all", version: 1, exported: new Date(now).toISOString() };
   P.settings.lastExport = now; saveP(); out.gk = { bank_id: DATA.meta.bank_id, ...P };
   if (typeof CP !== "undefined" && CP) { CP.settings.lastExport = now; ceSave(); out.ce = { module: "computer_engineer", bank_id: CEB.meta.bank_id, ...CP }; }
+  if (typeof H !== "undefined" && H) out.habit = H;
   dl(`psc_progress_all_${dayKey(now)}.json`, JSON.stringify(out)); toast("All progress downloaded (both modules)"); render(); }
 const exportProgress = exportAll;
 function gkMerge(X) { if (!X || !X.q || !X.log) return -1;
@@ -1008,7 +1049,7 @@ function gkMerge(X) { if (!X || !X.q || !X.log) return -1;
   Object.assign(P.reports, X.reports || {}); for (const [k, v] of Object.entries(X.notes || {})) if (v && !P.notes[k]) P.notes[k] = v; saveP(); return add; }
 function importAll(file) { if (!file) return; file.text().then(t => { let X; try { X = JSON.parse(t); } catch (e) { toast("Not a valid JSON file."); return; }
   let gk = -1, ce = false;
-  if (X.format === "psc-progress-all") { gk = gkMerge(X.gk); if (X.ce && typeof ceMerge === "function") ce = ceMerge(X.ce); }
+  if (X.format === "psc-progress-all") { gk = gkMerge(X.gk); if (X.ce && typeof ceMerge === "function") ce = ceMerge(X.ce); if (X.habit && typeof hMerge === "function") hMerge(X.habit); }
   else if (X.module === "computer_engineer") { if (typeof ceMerge === "function") ce = ceMerge(X); }
   else gk = gkMerge(X);
   if (gk < 0 && !ce) { toast("That isn't a progress file from this app."); return; }
@@ -1064,10 +1105,10 @@ const ceOK = q => q.options && q.options.length >= 2 && q.answer_key && q.option
 const ceAns = q => q.answer_text || (q.options.find(o => o.key === q.answer_key) || {}).text || "";
 const ceS = id => CP.q[id];
 function ceStatus(id) { const s = CP.q[id]; if (!s || !s.a) return "New"; if (s.st >= 3) return "Mastered"; if (s.lr === 0 || s.c / s.a < 0.6) return "Weak"; return "Learning"; }
-function ceRecord(q, ok, chosen, ms, unsure) {
+function ceRecord(q, ok, chosen, ms, unsure, at) {
   const s = CP.q[q.id] || (CP.q[q.id] = { a: 0, c: 0, w: 0, st: 0, lr: null, la: 0, un: 0 });
   s.a++; if (ok) { s.c++; s.st++; } else { s.w++; s.st = 0; } s.lr = ok ? 1 : 0; s.la = Date.now(); if (unsure) s.un++;
-  CP.log.push([q.id, Date.now(), ok ? 1 : 0, chosen, Math.round(ms)]);
+  const now = Date.now(); CP.log.push([q.id, at && at <= now ? at : now, ok ? 1 : 0, chosen, Math.round(ms)]);
 }
 function ceStats(qs) {
   let att = 0, c = 0, w = 0, ans = 0, weak = 0, mast = 0;
@@ -1082,7 +1123,7 @@ function ceSubjects() {
 const ceTopics = qs => { const m = new Map(); for (const q of qs) { const t = q.topic || "General"; if (!m.has(t)) m.set(t, []); m.get(t).push(q); } return [...m.entries()].sort((a, b) => b[1].length - a[1].length); };
 
 // ------------------------------------------------------------------ CE nav
-const CE_NAV = [["Computer Engineer", [["ce_dash", "Home", "⌂", 1], ["ce_practice", "Practice", "✎", 1], ["ce_subjects", "Subjects", "▦", 1], ["ce_progress", "Progress", "▤", 1]]],
+const CE_NAV = [["Computer Engineer", [["ce_dash", "Home", "⌂", 1], ["habit", "Daily goal", "◎", 0], ["ce_practice", "Practice", "✎", 1], ["ce_subjects", "Subjects", "▦", 1], ["ce_progress", "Progress", "▤", 1]]],
   ["Library", [["ce_attempted", "Attempted & weak", "↻", 0], ["ce_bank", "Question list", "☰", 0], ["ce_import", "Add questions", "⇣", 0]]]];
 const isCE = r => String(r).startsWith("ce_");
 
@@ -1090,7 +1131,7 @@ const isCE = r => String(r).startsWith("ce_");
 function vHome() {
   const g = gstats(pool()), c = ceStats(CEQ);
   const realGK = ALLQ.filter(q => !q.is_sample).length;
-  return `<h1>Choose what to practise</h1><p class="sub">Two separate question banks. Progress in one never affects the other.</p>
+  return `<h1>Choose what to practise</h1><p class="sub">Two separate question banks. Progress in one never affects the other.</p>${typeof hHomeCard === "function" ? hHomeCard() : ""}
   <div class="modpick">
     <button class="modcard gk" onclick="go('dash')"><span class="mk">लोक सेवा</span><b>General Knowledge</b><span class="d">${realGK.toLocaleString()} questions · Nepal, world, current affairs, constitution, aptitude</span>
       <span class="ms">${g.attempted ? `${g.attempted.toLocaleString()} attempted · ${fp(g.acc == null ? null : Math.round(g.acc * 100))} accuracy` : "Not started yet"}</span></button>
@@ -1246,7 +1287,7 @@ function vCeSession() {
 }
 function cePickOpt(k) {
   const S = CES, it = ceCur(), q = CEMAP.get(it.id); if (it.locked) return;
-  ceTick(); it.chosen = k;
+  ceTick(); it.chosen = k; it.at = Date.now();
   if (S.cfg.explain === "now") { it.locked = true; ceRecord(q, k === q.answer_key, k, it.ms, it.unsure); ceSave(); }
   render();
 }
@@ -1260,7 +1301,7 @@ function ceStartTick() { clearInterval(CETICK); if (!CES || !CES.deadline) retur
   upd(); CETICK = setInterval(upd, 1000); }
 function ceFinish() {
   const S = CES; if (!S) return; clearInterval(CETICK); if (route === "ce_session") ceTick();
-  for (const it of S.items) if (!it.locked && it.chosen) { const q = CEMAP.get(it.id); it.locked = true; ceRecord(q, it.chosen === q.answer_key, it.chosen, it.ms, it.unsure); }
+  for (const it of S.items) if (!it.locked && it.chosen) { const q = CEMAP.get(it.id); it.locked = true; ceRecord(q, it.chosen === q.answer_key, it.chosen, it.ms, it.unsure, it.at); }
   const c = S.items.filter(it => it.chosen && it.chosen === CEMAP.get(it.id).answer_key).length, w = S.items.filter(it => it.chosen && it.chosen !== CEMAP.get(it.id).answer_key).length;
   S.result = { c, w, skip: S.items.length - c - w, score: c - w * (S.cfg.neg || 0), secs: (Date.now() - S.t0) / 1000 };
   CP.sessions.push({ d: Date.now(), label: S.cfg.label, n: S.items.length, c, w, mode: S.cfg.mode });
@@ -1455,6 +1496,255 @@ function ceImpReport() {
 }
 function ceCommitImport() { CP.imported = [...(CP.imported || []), ...CE_IMP.added]; ceSave(); ceIndex(); toast(`${CE_IMP.added.length} questions added`); CE_IMP = null; render(); }
 function ceClearLocal() { modal(`<h2>Remove questions added on this device?</h2><p>Your answers to them stay in your history but the questions disappear from practice.</p><div class="row" style="margin-top:16px"><button class="btn pri" style="background:var(--bad);border-color:var(--bad)" onclick="CP.imported=[];ceSave();ceIndex();closeModal();render()">Remove</button><button class="btn ghost" onclick="closeModal()">Cancel</button></div>`); }
+
+// ================================================================== DAILY GOAL (habit tracker)
+// Reads the real answer logs of both modules (P.log for General Knowledge, CP.log for Computer Engineer).
+// Counting rule: one question counts once per study day per module — the first time it is answered
+// (right or wrong) that day. Skipped questions, questions only opened, and repeat answers to the same
+// question on the same day do not count. Unsubmitted answers in an "answers at the end" quiz count
+// when the quiz is submitted, under the time each answer was picked.
+// Study day: 03:00 → 03:00 next day. Sessions: Morning 03:00–09:00, Daytime 09:00–16:00,
+// Evening/Night 16:00–03:00. A boundary instant belongs to the new session (09:00:00 is Daytime).
+// Daily summaries are also kept in their own store (key psc-habit:v1), so history survives even if
+// an answer log is trimmed, and they travel in the "Download all progress" file.
+const HKEY = "psc-habit:v1", HOUR = 36e5, DAY_START_H = 3;
+const HSESS = [{ name: "Morning", short: "Morning", from: 3, to: 9, label: "3:00 AM – 9:00 AM" },
+  { name: "Daytime", short: "Daytime", from: 9, to: 16, label: "9:00 AM – 4:00 PM" },
+  { name: "Evening/Night", short: "Evening", from: 16, to: 27, label: "4:00 PM – 3:00 AM" }];
+const HDEF_T = [[100, 100], [100, 100], [100, 100]];
+let H, HCACHE = null, HPREV = null, HANIM = {};
+function hBlank() { return { v: 1, since: hDay(Date.now()), days: {}, targets: HDEF_T.map(x => x.slice()), best: { streak: 0 } }; }
+function hLoad() {
+  try { const r = localStorage.getItem(HKEY); H = r ? JSON.parse(r) : null; } catch (e) { H = null; }
+  H = { ...hBlank(), ...(H || {}) }; H.days = H.days || {};
+}
+function hSave() { try { localStorage.setItem(HKEY, JSON.stringify(H)); } catch (e) { } }
+
+// ---- time rules (pure; exposed for tests)
+const hDay = ts => dayKey(ts - DAY_START_H * HOUR);                       // study-day key
+const hSess = ts => { const h = new Date(ts).getHours(); return h >= 3 && h < 9 ? 0 : h >= 9 && h < 16 ? 1 : 2; };
+function hDayStart(ts) { const d = new Date(ts - DAY_START_H * HOUR); d.setHours(DAY_START_H, 0, 0, 0); return d.getTime(); }
+const hSessBounds = (dayStart, i) => [dayStart + (HSESS[i].from - 3) * HOUR, dayStart + (HSESS[i].to - 3) * HOUR];
+const hKeyToStart = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d, DAY_START_H).getTime(); };
+const hShiftKey = (k, n) => { const [y, m, d] = k.split("-").map(Number); return dayKey(new Date(y, m - 1, d + n, 12).getTime()); };
+
+// ---- counting
+function hCount(log, okFn) {   // → { dayKey: [s0, s1, s2] }, plus earliest ts
+  const seen = new Set(), out = {}; let first = Infinity;
+  const L = log.slice().sort((a, b) => a[1] - b[1]);
+  for (const l of L) { if (!okFn(l)) continue; const ts = l[1]; if (ts < first) first = ts;
+    const k = hDay(ts), u = k + "|" + l[0]; if (seen.has(u)) continue; seen.add(u);
+    (out[k] || (out[k] = [0, 0, 0]))[hSess(ts)]++; }
+  return { days: out, first };
+}
+function hCompute() {
+  const gl = (P && P.log) || [], cl = (typeof CP !== "undefined" && CP && CP.log) || [];
+  const sig = gl.length + ":" + (gl.length ? gl[gl.length - 1][1] : 0) + "|" + cl.length + ":" + (cl.length ? cl[cl.length - 1][1] : 0);
+  if (HCACHE && HCACHE.sig === sig) return HCACHE;
+  const G = hCount(gl, l => l[2] === 1 || l[2] === 0), C = hCount(cl, l => l[2] === 1 || l[2] === 0);
+  // fold into the persistent store: days fully covered by a log are exact; older days keep the larger value
+  let changed = false;
+  const fold = (src, part) => { const firstDay = src.first === Infinity ? null : hDay(src.first);
+    const keys = new Set([...Object.keys(src.days), ...Object.keys(H.days)]);
+    for (const k of keys) { const cnt = src.days[k] || [0, 0, 0], d = H.days[k] || { g: [0, 0, 0], c: [0, 0, 0] };
+      const exact = firstDay && k > firstDay;   // the first logged day may be partly trimmed
+      const nv = d[part].map((v, i) => exact ? cnt[i] : Math.max(v, cnt[i]));
+      if (!H.days[k] || nv.some((v, i) => v !== d[part][i])) { d[part] = nv; H.days[k] = d; changed = true; } } };
+  fold(G, "g"); fold(C, "c");
+  for (const [k, d] of Object.entries(H.days)) { if (!d.t) { d.t = H.targets.map(x => x.slice()); changed = true; } }
+  if (changed) hSave();
+  return (HCACHE = { sig });
+}
+const hT = d => (d && d.t) || H.targets;
+function hDayInfo(k) {
+  const d = H.days[k] || { g: [0, 0, 0], c: [0, 0, 0] }, t = hT(H.days[k]);
+  const tg = t.reduce((s, x) => s + x[0], 0), tc = t.reduce((s, x) => s + x[1], 0);
+  const g = d.g.reduce((a, b) => a + b, 0), c = d.c.reduce((a, b) => a + b, 0);
+  const done = Math.min(g, tg) + Math.min(c, tc), target = tg + tc;
+  const sess = t.map((x, i) => { const sg = d.g[i], sc = d.c[i], dn = Math.min(sg, x[0]) + Math.min(sc, x[1]);
+    return { i, g: sg, c: sc, tg: x[0], tc: x[1], done: dn, target: x[0] + x[1], full: sg >= x[0] && sc >= x[1], total: sg + sc }; });
+  return { k, g, c, tg, tc, total: g + c, done, target, pct: target ? done / target : 0, full: g >= tg && c >= tc, sess };
+}
+function hStatus(info, now = Date.now()) {   // per-session status for a day
+  const today = hDay(now), cur = info.k === today ? hSess(now) : (info.k < today ? 3 : -1);
+  return info.sess.map(s => s.full ? "done" : s.i < cur ? (s.total ? "partial" : "missed") : s.i === cur ? "now" : "pending");
+}
+function hStreaks(now = Date.now()) {
+  const today = hDay(now), keys = Object.keys(H.days).filter(k => hDayInfo(k).full).sort();
+  const full = new Set(keys);
+  let cur = 0, k = full.has(today) ? today : hShiftKey(today, -1);
+  while (full.has(k)) { cur++; k = hShiftKey(k, -1); }
+  let best = 0, run = 0, prev = null;
+  for (const x of keys) { run = prev && hShiftKey(prev, 1) === x ? run + 1 : 1; best = Math.max(best, run); prev = x; }
+  return { cur, best, todayFull: full.has(today) };
+}
+function hRange(fromKey, toKey) { const out = []; let k = fromKey; while (k <= toKey && out.length < 4000) { out.push(k); k = hShiftKey(k, 1); } return out; }
+function hSummary(keys, now = Date.now()) {   // completed days only (today counted when already full)
+  const today = hDay(now); let full = 0, part = 0, miss = 0, sum = 0, n = 0, q = 0, short = 0;
+  for (const k of keys) { const i = hDayInfo(k); if (k === today && !i.full) continue; n++; sum += i.pct; q += i.total; short += i.target - i.done;
+    if (i.full) full++; else if (i.total) part++; else miss++; }
+  return { n, full, part, miss, avg: n ? sum / n : null, rate: n ? full / n : null, q, short };
+}
+
+// ---- small drawing helpers
+function hRing(id, frac, size, stroke, color, track = "var(--soft)") {
+  const r = (size - stroke) / 2, C = 2 * Math.PI * r, f = Math.max(0, Math.min(1, frac));
+  const from = HANIM[id] != null ? HANIM[id] : f; HANIM[id] = f;
+  return `<svg class="hring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${track}" stroke-width="${stroke}"/>
+    <circle class="hr-arc" data-to="${C * (1 - f)}" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - from)}" transform="rotate(-90 ${size / 2} ${size / 2})"/></svg>`;
+}
+function hBar(id, v, t, color) { const f = t ? Math.min(1, v / t) : 0, from = HANIM[id] != null ? HANIM[id] : f; HANIM[id] = f;
+  return `<div class="hbar"><i class="hb-fill" data-to="${f * 100}" style="width:${from * 100}%;background:${color}"></i></div>`; }
+function hAnimate() { requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.querySelectorAll(".hr-arc[data-to]").forEach(e => { e.style.strokeDashoffset = e.dataset.to; });
+  document.querySelectorAll(".hb-fill[data-to]").forEach(e => { e.style.width = e.dataset.to + "%"; }); })); }
+const hN = n => Number(n).toLocaleString();
+const hPct = f => f == null ? "—" : (Math.round(f * 1000) / 10).toFixed(f >= 1 || f === 0 ? 0 : 1) + "%";
+const hDur = ms => { const m = Math.max(0, Math.round(ms / MIN)), h = Math.floor(m / 60); return h ? `${h} h ${m % 60} min` : `${m} min`; };
+const hNice = k => new Date(hKeyToStart(k)).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+const H_GK = "var(--h-gk)", H_CE = "var(--h-ce)";
+const H_STATUS = { done: ["Completed", "ok"], partial: ["Partly done", "warn"], missed: ["Missed", "bad"], now: ["In progress", "acc"], pending: ["Pending", ""] };
+
+// ---- live messages (based on real numbers only)
+function hMessages(info, st, now) {
+  const m = [], cs = hSess(now), s = info.sess[cs], lg = Math.max(0, s.tg - s.g), lc = Math.max(0, s.tc - s.c);
+  if (info.full) { m.push(`Daily goal achieved: ${hN(info.done)} of ${hN(info.target)}. Well done.`); return m; }
+  const prevDone = info.sess.slice(0, cs).every(x => x.full);
+  if (s.full) {
+    const nx = HSESS[cs + 1];
+    m.push(`${HSESS[cs].name} session completed!${nx ? " Keep the momentum going." : ""}`);
+    if (!nx) m.push(`Session targets are met, but the day is ${hN(info.target - info.done)} short: ${info.g < info.tg ? `${hN(info.tg - info.g)} GK` : ""}${info.g < info.tg && info.c < info.tc ? " and " : ""}${info.c < info.tc ? `${hN(info.tc - info.c)} Computer` : ""} still to go before 3:00 AM.`);
+  } else if (lg && lc) m.push(`${lg} GK and ${lc} Computer questions left in the ${HSESS[cs].name.toLowerCase()} session.`);
+  else if (lg || lc) m.push(`Only ${lg || lc} ${lg ? "GK" : "Computer"} question${(lg || lc) > 1 ? "s" : ""} left to complete this session.`);
+  if (cs === 2 && prevDone && !s.full) m.push("One more session to complete your daily goal!");
+  const pc = Math.floor(info.pct * 100);
+  if (pc >= 25) m.push(`You are ${pc}% through today's target.`);
+  const missed = info.sess.slice(0, cs).filter(x => !x.full);
+  if (missed.length && !info.full) { const sh = missed.reduce((a, x) => a + x.target - x.done, 0);
+    m.push(`${missed.map(x => HSESS[x.i].name).join(" and ")} ended ${hN(sh)} short. Extra questions today still count toward the daily ${hN(info.target)}.`); }
+  return m.slice(0, 3);
+}
+
+// ---- notifications on real changes only (session or day completed while the app is open)
+function hCheckEvents(info, now) {
+  const snap = { k: info.k, s: info.sess.map(x => x.full), full: info.full };
+  if (HPREV && HPREV.k === snap.k) {
+    if (snap.full && !HPREV.full) toast(`Daily goal achieved: ${hN(info.target)} questions!`);
+    else snap.s.forEach((f, i) => { if (f && !HPREV.s[i]) { HANIM["just" + i] = Date.now(); toast(`${HSESS[i].name} session completed!${i < 2 ? " Keep the momentum going." : ""}`); } });
+  }
+  HPREV = snap;
+}
+function hPending() {   // answers picked in an open "answers at the end" quiz, not yet submitted
+  let g = 0, c = 0;
+  if (typeof SESSION !== "undefined" && SESSION && !SESSION.done) g = SESSION.items.filter(x => x.chosen && !x.locked).length;
+  if (typeof CES !== "undefined" && CES && !CES.result) c = CES.items.filter(x => x.chosen && !x.locked).length;
+  return { g, c };
+}
+
+// ---- compact widgets (sidebar + home)
+function hSideWidget() {
+  hCompute(); const now = Date.now(), info = hDayInfo(hDay(now)), cs = hSess(now), s = info.sess[cs], pend = hPending();
+  hCheckEvents(info, now);
+  return `<button class="hside" onclick="go('habit')" title="Open Daily goal">${hRing("side", info.pct, 44, 6, "#fff", "rgba(255,255,255,.22)")}
+    <span><b>${hN(info.done)} / ${hN(info.target)}</b> today<br><span class="hs2">${HSESS[cs].short}: ${s.done}/${s.target}${pend.g + pend.c ? ` · ${pend.g + pend.c} waiting in open quiz` : ""}</span></span></button>`;
+}
+function hHomeCard() {
+  hCompute(); const now = Date.now(), info = hDayInfo(hDay(now)), st = hStatus(info, now), cs = hSess(now), sk = hStreaks(now);
+  const msg = hMessages(info, st, now)[0] || "";
+  return `<section class="block hhome"><div class="hh-ring">${hRing("home", info.pct, 96, 10, "var(--h-done)")}<span class="hh-pct">${Math.floor(info.pct * 100)}%</span></div>
+    <div class="hh-body"><div class="hh-top"><b>Today's goal</b><span class="faint">${hN(info.done)} of ${hN(info.target)} questions</span></div>
+      <div class="hh-sub"><span><i class="dot" style="background:${H_GK}"></i>GK <b>${hN(info.g)}</b> / ${info.tg}</span><span><i class="dot" style="background:${H_CE}"></i>Computer <b>${hN(info.c)}</b> / ${info.tc}</span>
+      <span>${st.map((x, i) => `<span class="hh-s ${x}" title="${HSESS[i].name}: ${H_STATUS[x][0]}">${HSESS[i].short[0]}</span>`).join("")}</span><span>Streak <b>${sk.cur}</b> day${sk.cur === 1 ? "" : "s"}</span></div>
+      <div class="hh-msg">${esc(msg)}</div></div>
+    <button class="btn pri" onclick="go('habit')">Open daily goal</button></section>`;
+}
+
+// ---- the Daily goal page
+function vHabit() {
+  hCompute(); const now = Date.now(), today = hDay(now), info = hDayInfo(today), st = hStatus(info, now), cs = hSess(now), sk = hStreaks(now);
+  hCheckEvents(info, now);
+  const ds = hDayStart(now), [, csEnd] = hSessBounds(ds, cs), pend = hPending();
+  const msgs = hMessages(info, st, now);
+  const gF = info.g / info.tg, cF = info.c / info.tc;
+  const focus = info.full ? "" : gF < cF ? `GK needs more attention: ${Math.round(gF * 100)}% done against ${Math.round(Math.min(1, cF) * 100)}% for Computer.` : cF < gF ? `Computer needs more attention: ${Math.round(cF * 100)}% done against ${Math.round(Math.min(1, gF) * 100)}% for GK.` : "";
+  const subj = (name, v, t, col, id) => `<div class="hsubj">${hRing(id, v / t, 64, 8, col)}<div><div class="hs-n"><b>${hN(v)}</b> / ${hN(t)}</div><div class="hs-l">${name}</div><div class="faint">${v >= t ? (v > t ? `Done · ${hN(v - t)} extra` : "Done") : `${hN(t - v)} remaining`}</div></div></div>`;
+  const card = (s, i) => { const x = st[i], just = HANIM["just" + i] && now - HANIM["just" + i] < 4000;
+    const lg = Math.max(0, s.tg - s.g), lc = Math.max(0, s.tc - s.c);
+    const foot = x === "done" ? `<b>Both targets met.</b>${s.total > s.target ? ` ${hN(s.total - s.target)} extra.` : ""}`
+      : x === "pending" ? `Starts at ${HSESS[i].label.split(" – ")[0]}.`
+      : x === "now" ? `${lg + lc} left · ${hDur(csEnd - now)} remaining in this session`
+      : `${hN(s.target - s.done)} short${lg ? ` · GK ${lg}` : ""}${lc ? ` · Computer ${lc}` : ""}`;
+    return `<article class="hsess ${x}${i === cs ? " cur" : ""}${just ? " just" : ""}"><div class="spread"><div><b>${HSESS[i].name}</b><div class="faint">${HSESS[i].label}</div></div><span class="tag ${H_STATUS[x][1]}">${x === "done" ? "✓ " : ""}${H_STATUS[x][0]}</span></div>
+      <div class="hs-big"><b>${s.done}</b> / ${s.target}<span class="faint"> · ${Math.round(100 * s.done / s.target)}%</span></div>
+      <div class="hs-row"><span>GK</span>${hBar("sg" + i, s.g, s.tg, H_GK)}<span class="hs-c">${s.g}/${s.tg}</span></div>
+      <div class="hs-row"><span>Computer</span>${hBar("sc" + i, s.c, s.tc, H_CE)}<span class="hs-c">${s.c}/${s.tc}</span></div>
+      <div class="hs-foot">${foot}</div></article>`; };
+  return `<h1>Daily goal</h1><p class="sub">Study day ${hNice(today)} · runs 3:00 AM to 3:00 AM · ${hDur(ds + DAY - now)} left today. Counts come from the questions you actually answer in both modules.</p>
+  ${pend.g + pend.c ? `<div class="banner info">${pend.g + pend.c} answer${pend.g + pend.c > 1 ? "s" : ""} in your open quiz will count when you submit it.</div>` : ""}
+  <section class="block hhero">
+    <div class="hh-main">${hRing("main", info.pct, 188, 16, info.full ? "var(--ok)" : "var(--h-done)")}<div class="hm-in"><div class="hm-n">${hN(info.done)}<span>/ ${hN(info.target)}</span></div><div class="hm-p">${hPct(info.pct)} of today</div></div></div>
+    <div class="hh-side">
+      <div class="hsubjs">${subj("GK", info.g, info.tg, H_GK, "g")}${subj("Computer", info.c, info.tc, H_CE, "c")}</div>
+      <div class="hnow"><span class="tag acc">Now: ${HSESS[cs].name}</span> ${info.sess[cs].full ? "session complete" : `${info.sess[cs].target - info.sess[cs].done} questions left in this session`}</div>
+      ${focus ? `<div class="hfocus">${esc(focus)}</div>` : ""}
+      <ul class="hmsgs">${msgs.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+      <div class="hstreak"><div><b>${sk.cur}</b><span>day streak</span></div><div><b>${sk.best}</b><span>best streak</span></div><div><b>${hN(info.target - info.done)}</b><span>left today</span></div></div>
+      <div class="row"><button class="btn pri" onclick="go('quiz')">Practise GK</button><button class="btn pri hce" onclick="go('ce_practice')">Practise Computer</button></div>
+    </div>
+  </section>
+  <h2 class="hsec">Today's sessions</h2>
+  <div class="hsessions">${info.sess.map(card).join("")}</div>
+  ${hHistory(now)}
+  <section class="block"><h2>How counting works</h2><p class="faint" style="margin:0">Every question you answer (right or wrong) counts once per study day in its own module: General Knowledge answers count toward GK, Computer Engineer answers toward Computer. Answering the same question again on the same day, skipping, or only opening a question does not count. Refreshing or reopening the page never adds to the count. In quizzes that show answers at the end, answers count when you submit, under the time you picked each one. A study day runs from 3:00 AM to 3:00 AM; an answer exactly at a session boundary (for example 9:00:00 AM) belongs to the new session. A session is complete only when both its GK and Computer targets are met; a day is complete only when both 300 targets are met. Tracking since ${hNice(H.since)}; days before that are shown in the history but not counted as missed.</p></section>`;
+}
+function hHistory(now) {
+  const today = hDay(now), keysAll = Object.keys(H.days).sort();
+  const tracked = hRange(H.since, today), sk = hStreaks(now);
+  const wk = hSummary(hRange(hShiftKey(today, -6), today).filter(k => k >= H.since), now);
+  const mStart = today.slice(0, 8) + "01", mo = hSummary(hRange(mStart > H.since ? mStart : H.since, today), now);
+  const all = hSummary(tracked, now);
+  let bestDay = null; for (const k of keysAll) { const i = hDayInfo(k); if (!bestDay || i.total > bestDay.total) bestDay = i; }
+  // heatmap: 26 weeks, Monday rows
+  const end = today, endDate = new Date(hKeyToStart(end)), dow = (endDate.getDay() + 6) % 7;
+  const firstK = keysAll.length && keysAll[0] < H.since ? keysAll[0] : H.since;
+  const span = Math.max(11, Math.min(25, Math.ceil((hKeyToStart(end) - hKeyToStart(firstK)) / (7 * DAY))));
+  const startKey = hShiftKey(end, -(7 * span + dow)), cells = hRange(startKey, end);
+  const lvl = i => !i.total ? 0 : i.full ? 5 : i.pct >= .75 ? 4 : i.pct >= .5 ? 3 : i.pct >= .25 ? 2 : 1;
+  const months = []; let col = 0;
+  const heat = cells.map((k, n) => { const c = Math.floor(n / 7), r = n % 7, i = hDayInfo(k), L = lvl(i), pre = k < H.since && !i.total;
+    if (r === 0 && k.slice(8) <= "07") months.push(`<text x="${c * 15 + 30}" y="10" class="hm-t">${new Date(hKeyToStart(k)).toLocaleDateString(undefined, { month: "short" })}</text>`);
+    return `<rect x="${c * 15 + 30}" y="${r * 15 + 16}" width="12" height="12" rx="2" class="hl${pre ? "x" : L}${k === today ? " hl-today" : ""}"><title>${hNice(k)}: ${hN(i.total)} answered · ${hPct(i.pct)}${i.full ? " · goal met" : k < today && k >= H.since ? ` · ${hN(i.target - i.done)} short` : ""}</title></rect>`; }).join("");
+  const W = Math.ceil(cells.length / 7) * 15 + 34;
+  const heatSvg = `<svg class="hheat" viewBox="0 0 ${W} 124" style="max-width:${W * 1.4}px">${months.join("")}${["Mon", "Wed", "Fri"].map((d, j) => `<text x="0" y="${(j * 2) * 15 + 26}" class="hm-t">${d}</text>`).join("")}${heat}</svg>
+    <div class="hlegend">Less <i class="hl0"></i><i class="hl1"></i><i class="hl2"></i><i class="hl3"></i><i class="hl4"></i> More <i class="hl5"></i> Goal met</div>`;
+  // 30-day stacked bars
+  const last = hRange(hShiftKey(today, -29), today).map(hDayInfo), mx = Math.max(600, ...last.map(i => i.total)), BH = 150, BW = 18;
+  const bars = last.map((i, n) => { const x = n * (BW + 6) + 34, hg = BH * i.g / mx, hc = BH * i.c / mx;
+    return `<g><title>${hNice(i.k)}: GK ${i.g}, Computer ${i.c} · ${hPct(i.pct)}</title><rect x="${x}" y="${BH - hg + 10}" width="${BW}" height="${hg}" fill="${H_GK}"/><rect x="${x}" y="${BH - hg - hc + 10}" width="${BW}" height="${hc}" fill="${H_CE}"/>
+      ${i.full ? `<circle cx="${x + BW / 2}" cy="${BH + 20}" r="3" fill="var(--ok)"/>` : ""}${n % 5 === 0 || n === 29 ? `<text x="${x + BW / 2}" y="${BH + 34}" text-anchor="middle" class="hm-t">${new Date(hKeyToStart(i.k)).getDate()}</text>` : ""}</g>`; }).join("");
+  const ty = BH - BH * (last[0].target) / mx + 10;
+  const chart = `<svg class="hchart" viewBox="0 0 ${30 * (BW + 6) + 40} ${BH + 40}"><line x1="30" x2="${30 * (BW + 6) + 34}" y1="${ty}" y2="${ty}" class="h-tl"/><text x="0" y="${ty + 4}" class="hm-t">${last[0].target}</text>${bars}</svg>
+    <div class="hlegend"><i style="background:${H_GK}"></i>GK <i style="background:${H_CE}"></i>Computer <span class="h-tlk"></span>daily target <i style="background:var(--ok);border-radius:50%"></i>goal met</div>`;
+  // last 14 days table
+  const rows = hRange(hShiftKey(today, -13), today).reverse().filter(k => k >= H.since || H.days[k]).map(k => { const i = hDayInfo(k), s = hStatus(i, now);
+    const res = k === today && !i.full ? `<span class="tag acc">In progress</span>` : i.full ? `<span class="tag ok">Goal met</span>` : i.total ? `<span class="tag warn">${hN(i.target - i.done)} short</span>` : k < H.since ? `<span class="faint">before tracking</span>` : `<span class="tag bad">Missed</span>`;
+    return `<tr><td>${hNice(k)}</td><td class="n">${i.g}</td><td class="n">${i.c}</td><td class="n"><b>${i.total}</b></td><td class="n">${hPct(i.pct)}</td>${i.sess.map((x, j) => `<td><span class="hh-s ${s[j]}">${x.done}</span></td>`).join("")}<td>${res}</td></tr>`; }).join("");
+  const stat = (v, l) => `<div class="hstat"><b>${v}</b><span>${l}</span></div>`;
+  return `<h2 class="hsec">History</h2>
+  <div class="hstats">${stat(sk.cur, "current streak")}${stat(sk.best, "best streak")}${stat(bestDay ? hN(bestDay.total) : "—", `best day${bestDay ? " · " + hNice(bestDay.k) : ""}`)}
+    ${stat(hPct(wk.avg), "7-day average")}${stat(mo.n ? `${mo.full}/${mo.n}` : "—", `goal met this month${mo.rate != null ? " · " + hPct(mo.rate) : ""}`)}${stat(`${all.full} · ${all.part} · ${all.miss}`, "full · partial · missed days")}</div>
+  <section class="block"><h2>Calendar</h2>${heatSvg}</section>
+  <section class="block"><h2>Last 30 days</h2>${chart}</section>
+  <section class="block"><h2>Week and month</h2><div class="tw"><table><thead><tr><th></th><th class="n">Days</th><th class="n">Goal met</th><th class="n">Partial</th><th class="n">Missed</th><th class="n">Avg. completion</th><th class="n">Questions</th><th class="n">Shortfall</th></tr></thead><tbody>
+    ${[["Last 7 days", wk], ["This month", mo], ["Since tracking began", all]].map(([l, s]) => `<tr><td>${l}</td><td class="n">${s.n}</td><td class="n">${s.full}</td><td class="n">${s.part}</td><td class="n">${s.miss}</td><td class="n">${hPct(s.avg)}</td><td class="n">${hN(s.q)}</td><td class="n">${hN(s.short)}</td></tr>`).join("")}
+  </tbody></table></div><p class="faint" style="margin:8px 0 0">Finished days only; today is included once its goal is met.</p></section>
+  <section class="block"><h2>Last 14 days</h2><div class="tw"><table><thead><tr><th>Day</th><th class="n">GK</th><th class="n">Computer</th><th class="n">Total</th><th class="n">Completion</th><th>Morning</th><th>Daytime</th><th>Evening</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="faint" style="margin:8px 0 0">Session cells show questions counted toward that session's target of 200 (100 GK + 100 Computer).</p></section>`;
+}
+function hMerge(X) { if (!X || !X.days) return; for (const [k, d] of Object.entries(X.days)) { const c = H.days[k];
+  if (!c) H.days[k] = d; else { c.g = c.g.map((v, i) => Math.max(v, (d.g || [])[i] || 0)); c.c = c.c.map((v, i) => Math.max(v, (d.c || [])[i] || 0)); } }
+  if (X.since && X.since < H.since) H.since = X.since; HCACHE = null; hSave(); }
+hLoad();
 
 render();
 </script>
