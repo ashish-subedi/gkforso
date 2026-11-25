@@ -381,7 +381,8 @@ loadP();
 const pool = () => ALLQ.filter(q => P.settings.showSample || !q.is_sample);
 
 // ------------------------------------------------------------------ spaced repetition (same rules as v1)
-const statusOf = id => { const s = P.q[id]; return !s || !s.a ? "New" : (s.status || "Learning"); };
+const statusOf = id => typeof msStatus === "function" ? msStatus("gk", id) : (() => { const s = P.q[id]; return !s || !s.a ? "New" : (s.status || "Learning"); })();
+const gkDue = id => typeof msDue === "function" ? (msDue("gk", id) ?? Infinity) : ((P.q[id] || {}).due ?? Infinity);
 function computeStatus(s) {
   const S = P.settings, acc = s.c / Math.max(1, s.c + s.w);
   if (s.st >= S.masteryStreak && (s.days || []).length >= S.masteryDays && s.delayed) return "Mastered";
@@ -421,7 +422,7 @@ const forgetRisk = id => { const s = P.q[id]; return (!s || !s.a || !s.st || !s.
 function gstats(qs) {
   let attempted = 0, att = 0, cor = 0, wrong = 0, weak = 0, strong = 0, due = 0, mastered = 0; const now = Date.now();
   for (const q of qs) { const s = P.q[q.id]; if (s && s.a) { attempted++; att += s.c + s.w; cor += s.c; wrong += s.w;
-    if (s.status === "Weak") weak++; if (s.status === "Strong" || s.status === "Mastered") strong++; if (s.status === "Mastered") mastered++; if (s.due <= now) due++; } }
+    const st = statusOf(q.id); if (st === "Weak") weak++; if (st === "Provisional" || st === "Mastered") strong++; if (st === "Mastered") mastered++; if (gkDue(q.id) <= now) due++; } }
   return { total: qs.length, attempted, never: qs.length - attempted, att, cor, wrong, acc: att ? cor / att : null, cov: qs.length ? attempted / qs.length : 0, weak, strong, due, mastered };
 }
 function rating(g) {
@@ -454,7 +455,7 @@ function subjectsPresent() {
 
 // ------------------------------------------------------------------ navigation
 // [key, label, icon, shown in the mobile tab bar]
-const NAV_GROUPS = [["Practice", [["dash", "Home", "⌂", 1], ["habit", "Daily goal", "◎", 1], ["quiz", "Quiz Centre", "✎", 1], ["revise", "Revision", "↻", 1], ["mistakes", "Mistake Book", "✕", 0]]],
+const NAV_GROUPS = [["Practice", [["dash", "Home", "⌂", 1], ["mastery", "Mastery", "◉", 1], ["habit", "Daily goal", "◎", 0], ["quiz", "Quiz Centre", "✎", 1], ["revise", "Revision", "↻", 1], ["mistakes", "Mistake Book", "✕", 0]]],
   ["Library", [["bank", "Question Bank", "☰", 0], ["cats", "Categories", "▦", 0], ["analytics", "Analytics", "▤", 0]]],
   ["Manage", [["imports", "Import Centre", "⇣", 0], ["review", "Review Required", "⚑", 0], ["settings", "Settings", "⚙", 0]]]];
 const PUBLIC = !!(DATA.meta && DATA.meta.public);
@@ -486,8 +487,8 @@ function closeMenu() { $("#menu-root").innerHTML = ""; }
 document.addEventListener("click", e => { if (!e.target.closest(".more-menu")) closeMenu(); });
 function render() {
   renderNav();
-  const V = { home: vHome, ce_dash: vCeDash, ce_practice: vCePractice, ce_session: vCeSession, ce_results: vCeResults, ce_subjects: vCeSubjects, ce_subject: vCeSubject, ce_progress: vCeProgress, ce_attempted: vCeAttempted, ce_revise: vCeRevise, ce_past: vCePast, ce_past_stats: vCePastStats, ce_bank: vCeBank, ce_analytics: vCeAnalytics, ce_import: vCeImport, habit: vHabit, dash: vDash, quiz: vQuiz, session: vSession, results: vResults, revise: vRevise, bank: vBank, cats: vCats, cat: vCat, mistakes: vMistakes, analytics: vAnalytics, imports: vImports, review: vReview, settings: vSettings };
-  $("#app").innerHTML = (WARN && !isCE(route) ? `<div class="banner">${esc(WARN)}</div>` : "") + (V[route] || vDash)();
+  const V = { mastery: vMastery, home: vHome, ce_dash: vCeDash, ce_practice: vCePractice, ce_session: vCeSession, ce_results: vCeResults, ce_subjects: vCeSubjects, ce_subject: vCeSubject, ce_progress: vCeProgress, ce_attempted: vCeAttempted, ce_revise: vCeRevise, ce_past: vCePast, ce_past_stats: vCePastStats, ce_bank: vCeBank, ce_analytics: vCeAnalytics, ce_import: vCeImport, habit: vHabit, dash: vDash, quiz: vQuiz, session: vSession, results: vResults, revise: vRevise, bank: vBank, cats: vCats, cat: vCat, mistakes: vMistakes, analytics: vAnalytics, imports: vImports, review: vReview, settings: vSettings };
+  $("#app").innerHTML = (WARN && !isCE(route) ? `<div class="banner">${esc(WARN)}</div>` : "") + (typeof msWrap === "function" ? msWrap(route, (V[route] || vDash)()) : (V[route] || vDash)());
   if (afterRender) { const f = afterRender; afterRender = null; f(); }
   if (typeof hAnimate === "function") hAnimate();
 }
@@ -500,14 +501,14 @@ function queues() {
   for (const q of qs) {
     const s = P.q[q.id];
     if (!s || !s.a) Q.never.push(q); else {
-      if (s.due <= now) Q.due.push(q);
-      if (s.status === "Weak") Q.weak.push(q);
+      if (gkDue(q.id) <= now) Q.due.push(q);
+      if (statusOf(q.id) === "Weak") Q.weak.push(q);
       if (s.w > 0) Q.incorrect.push(q);
-      if (forgetRisk(q.id) >= 0.8 && ["Strong", "Mastered", "Improving"].includes(s.status)) Q.forget.push(q);
+      if (typeof msRec === "function" ? (() => { const r = msRec("gk", q.id); return r && (r.fading || (r.L >= MC().provLevel && r.due <= now)); })() : forgetRisk(q.id) >= 0.8) Q.forget.push(q);
     }
     if (q.sources.some(x => recentImports.has(x.import_id))) Q.fresh.push(q);
   }
-  Q.due.sort((a, b) => P.q[a.id].due - P.q[b.id].due);
+  Q.due.sort((a, b) => gkDue(a.id) - gkDue(b.id));
   Q.forget.sort((a, b) => forgetRisk(b.id) - forgetRisk(a.id));
   return Q;
 }
@@ -626,7 +627,7 @@ function qcPool() {
   if (QC.sel === "new") qs = qs.filter(q => statusOf(q.id) === "New");
   if (QC.sel === "weak") qs = qs.filter(q => ["Weak", "Improving"].includes(statusOf(q.id)));
   if (QC.sel === "incorrect") qs = qs.filter(q => P.mistakes[q.id]);
-  if (QC.sel === "due") qs = qs.filter(q => P.q[q.id] && P.q[q.id].a && P.q[q.id].due <= now);
+  if (QC.sel === "due") qs = qs.filter(q => P.q[q.id] && P.q[q.id].a && gkDue(q.id) <= now);
   if (QC.sel === "marked") qs = qs.filter(q => P.marks[q.id]);
   return qs;
 }
@@ -634,7 +635,7 @@ function smartPick(qs, n, balance) {
   // priority: unattempted > due > others; questions answered in the last N hours go last; random within a tier
   const now = Date.now(), recent = P.settings.recentHours * 3600e3;
   const score = q => { const s = P.q[q.id]; let v = Math.random();
-    if (!s || !s.a) v += 3; else { if (s.due <= now) v += 2; if (s.status === "Weak") v += 1; if (now - s.la < recent) v -= 5; } return v; };
+    if (!s || !s.a) v += 3; else { if (gkDue(q.id) <= now) v += 2; if (statusOf(q.id) === "Weak") v += 1; if (now - s.la < recent) v -= 5; } return v; };
   const ranked = qs.map(q => [score(q), q]).sort((a, b) => b[0] - a[0]).map(x => x[1]);
   if (!balance) return ranked.slice(0, n);
   const buckets = { easy: [], medium: [], hard: [] }; for (const q of ranked) (buckets[q.difficulty] || buckets.medium).push(q);
@@ -807,7 +808,7 @@ function vBank() {
     <div class="row" style="margin-top:10px">
       ${sel("subj", BF.subj, Object.entries(CATS).map(([k, v]) => [k, v.label]), "All categories")}
       ${sel("topic", BF.topic, topics.map(t => [t, topicLabel(t)]), "All topics")}
-      ${sel("status", BF.status, ["New", "Learning", "Weak", "Improving", "Strong", "Mastered"].map(s => [s, s]), "Any status")}
+      ${sel("status", BF.status, ["New", "Learning", "Weak", "Improving", "Provisional", "Mastered"].map(s => [s, s === "New" ? "Unseen" : s]), "Any status")}
       ${sel("diff", BF.diff, [["easy", "Easy"], ["medium", "Medium"], ["hard", "Hard"]], "Any difficulty")}
       ${sel("origin", BF.origin, [["original", "Published questions"], ["generated", "Generated from facts"]], "Any origin")}
       <details style="display:inline-block"><summary class="faint">More filters</summary><div class="row" style="margin-top:8px">
@@ -852,7 +853,7 @@ function showQ(id) {
   ${q.source_text ? `<h3>Original fact from the source</h3><p class="muted">${esc(q.source_text)}</p>` : ""}
   ${rel.length ? `<h3>Related</h3><ul>${rel.slice(0, 6).map(r => `<li><a href="#" onclick="showQ('${r.id}');return false">${esc(r.q.question)}</a> <span class="tag ${r.relation === "conflict" ? "bad" : ""}">${esc(r.relation.replace("_", " "))}</span></li>`).join("")}</ul>` : ""}
   <h3>Source</h3><ul style="padding-left:20px">${src}</ul>
-  <h3>Your history</h3>${s && s.a ? `<div>${statusOf(id)} · ${s.c} correct, ${s.w} wrong · last ${ago(s.la)} · next revision ${s.due <= Date.now() ? "due now" : fdate(s.due)}</div>` : `<div class="faint">Not attempted yet.</div>`}
+  <h3>Your history</h3>${s && s.a ? `<div>${statusOf(id)} · ${s.c} correct, ${s.w} wrong · last ${ago(s.la)} · next revision ${gkDue(id) <= Date.now() ? "due now" : fdate(gkDue(id))}</div><div class="faint" style="margin-top:4px">${typeof msWhy === "function" ? esc(msWhy("gk", id)) : ""}</div>` : `<div class="faint">Not attempted yet.</div>`}
   ${m ? `<div class="faint">Wrong ${m.count}× — you answered: ${[...new Set(m.chosen.map(c => c.text))].map(esc).join(", ")}</div>` : ""}
   <h3>Your note</h3><textarea id="nt">${esc(P.notes[id] || "")}</textarea>
   <div class="row" style="margin-top:14px"><button class="btn" onclick="P.notes['${id}']=$('#nt').value;saveP();toast('Note saved')">Save note</button><button class="btn" onclick="reportQ('${id}')">Report a problem</button>${isMCQ(q) ? `<button class="btn pri" onclick="closeModal();retryIds(['${id}'])">Practise</button>` : ""}</div>`);
@@ -888,7 +889,7 @@ function vCat() {
 // ------------------------------------------------------------------ ANALYTICS
 function vAnalytics() {
   const qs = pool(), g = gstats(qs), now = Date.now();
-  const st = ["New", "Learning", "Weak", "Improving", "Strong", "Mastered"], sc = Object.fromEntries(st.map(x => [x, 0])); for (const q of qs) sc[statusOf(q.id)]++;
+  const st = ["New", "Learning", "Weak", "Improving", "Provisional", "Mastered"], sc = Object.fromEntries(st.map(x => [x, 0])); for (const q of qs) sc[statusOf(q.id)]++;
   const wk = (a, b) => { const l = P.log.filter(x => x[2] !== -1 && x[1] >= now - a * DAY && x[1] < now - b * DAY); return { n: l.length, acc: l.length ? Math.round(100 * l.filter(x => x[2] === 1).length / l.length) : null }; };
   const w1 = wk(7, 0), w2 = wk(14, 7); const seen = new Set(); let fa = 0, fc = 0, ra = 0, rc = 0;
   for (const [id, , r] of P.log) { if (r === -1) continue; if (!seen.has(id)) { seen.add(id); fa++; if (r === 1) fc++; } else { ra++; if (r === 1) rc++; } }
@@ -1039,6 +1040,7 @@ function exportAll() { const now = Date.now(), out = { format: "psc-progress-all
   P.settings.lastExport = now; saveP(); out.gk = { bank_id: DATA.meta.bank_id, ...P };
   if (typeof CP !== "undefined" && CP) { CP.settings.lastExport = now; ceSave(); out.ce = { module: "computer_engineer", bank_id: CEB.meta.bank_id, ...CP }; }
   if (typeof H !== "undefined" && H) out.habit = H;
+  if (typeof MS !== "undefined" && MS) out.mastery = MS;
   dl(`psc_progress_all_${dayKey(now)}.json`, JSON.stringify(out)); toast("All progress downloaded (both modules)"); render(); }
 const exportProgress = exportAll;
 function gkMerge(X) { if (!X || !X.q || !X.log) return -1;
@@ -1050,7 +1052,7 @@ function gkMerge(X) { if (!X || !X.q || !X.log) return -1;
   Object.assign(P.reports, X.reports || {}); for (const [k, v] of Object.entries(X.notes || {})) if (v && !P.notes[k]) P.notes[k] = v; saveP(); return add; }
 function importAll(file) { if (!file) return; file.text().then(t => { let X; try { X = JSON.parse(t); } catch (e) { toast("Not a valid JSON file."); return; }
   let gk = -1, ce = false;
-  if (X.format === "psc-progress-all") { gk = gkMerge(X.gk); if (X.ce && typeof ceMerge === "function") ce = ceMerge(X.ce); if (X.habit && typeof hMerge === "function") hMerge(X.habit); }
+  if (X.format === "psc-progress-all") { gk = gkMerge(X.gk); if (X.ce && typeof ceMerge === "function") ce = ceMerge(X.ce); if (X.habit && typeof hMerge === "function") hMerge(X.habit); if (X.mastery && typeof msMerge === "function") msMerge(X.mastery); }
   else if (X.module === "computer_engineer") { if (typeof ceMerge === "function") ce = ceMerge(X); }
   else gk = gkMerge(X);
   if (gk < 0 && !ce) { toast("That isn't a progress file from this app."); return; }
@@ -1105,12 +1107,12 @@ const ceSubjLabel = k => (CEB.subjects || {})[k] || ({ other: "Other" })[k] || k
 const ceOK = q => q.options && q.options.length >= 2 && q.answer_key && q.options.some(o => o.key === q.answer_key) && !(q.flags || []).some(f => CE_BLOCK.includes(f));
 const ceAns = q => q.answer_text || (q.options.find(o => o.key === q.answer_key) || {}).text || "";
 const ceS = id => CP.q[id];
-function ceStatus(id) { const s = CP.q[id]; if (!s || !s.a) return "New"; if (s.st >= 3) return "Mastered"; if (s.lr === 0 || s.c / s.a < 0.6) return "Weak"; return "Learning"; }
+function ceStatus(id) { if (typeof msStatus === "function") return msStatus("ce", id); const s = CP.q[id]; if (!s || !s.a) return "New"; if (s.st >= 3) return "Mastered"; if (s.lr === 0 || s.c / s.a < 0.6) return "Weak"; return "Learning"; }
 function ceRecord(q, ok, chosen, ms, unsure, at) {
   const s = CP.q[q.id] || (CP.q[q.id] = { a: 0, c: 0, w: 0, st: 0, lr: null, la: 0, un: 0 });
   s.a++; if (ok) { s.c++; s.st++; } else { s.w++; s.st = 0; } s.lr = ok ? 1 : 0; s.la = Date.now(); if (unsure) s.un++;
   ceSchedule(s, ok, unsure);
-  const now = Date.now(); CP.log.push([q.id, at && at <= now ? at : now, ok ? 1 : 0, chosen, Math.round(ms)]);
+  const now = Date.now(); CP.log.push([q.id, at && at <= now ? at : now, ok ? 1 : 0, chosen, Math.round(ms), unsure ? 1 : 0]);
 }
 // spaced revision: same intervals as the GK module (Settings → steps / first correct / wrong delay)
 function ceSteps() { const S = (typeof P !== "undefined" && P.settings) || {}; return { steps: S.steps || [2, 7, 15, 30, 60], first: S.firstCorrect || 4, wrong: S.wrongDelayMin || 10 }; }
@@ -1120,7 +1122,7 @@ function ceSchedule(s, ok, unsure) { const C = ceSteps(), now = s.la || Date.now
   if (!ok) { s.iv = 0; s.due = now + C.wrong * MIN; return; }
   s.iv = unsure ? Math.max(1, Math.round((ceIv(s) || 2) / 2)) : ceIv(s); s.due = sod(now) + s.iv * DAY; }
 // questions answered before scheduling existed get a due date worked out from their last answer
-function ceDue(id) { const s = CP.q[id]; if (!s || !s.a) return null; if (s.due == null) { const C = ceSteps(); s.iv = s.lr === 0 ? 0 : ceIv(s); s.due = s.lr === 0 ? (s.la || 0) + C.wrong * MIN : sod(s.la || 0) + s.iv * DAY; } return s.due; }
+function ceDue(id) { if (typeof msDue === "function") { const d = msDue("ce", id); return d == null ? null : d; } const s = CP.q[id]; if (!s || !s.a) return null; if (s.due == null) { const C = ceSteps(); s.iv = s.lr === 0 ? 0 : ceIv(s); s.due = s.lr === 0 ? (s.la || 0) + C.wrong * MIN : sod(s.la || 0) + s.iv * DAY; } return s.due; }
 function ceQueues() {
   const now = Date.now(), cut = now - 14 * DAY, Q = { due: [], weak: [], incorrect: [], forget: [], fresh: [], never: [] };
   const ri = (CEB.imports || []).filter(i => Date.parse(i.date || "") >= cut), recent = new Set([...ri.map(i => i.import_id), ...ri.map(i => i.file)].filter(Boolean));
@@ -1129,7 +1131,7 @@ function ceQueues() {
       if (ceDue(q.id) <= now) Q.due.push(q);
       if (s.w >= 2 && ceStatus(q.id) === "Weak") Q.weak.push(q);
       if (s.w > 0) Q.incorrect.push(q);
-      if (s.lr === 1 && s.st >= 1 && ceDue(q.id) > now && now - s.la >= Math.max(14, 0.75 * (s.iv || 0)) * DAY) Q.forget.push(q); }
+      if (typeof msRec === "function" ? (() => { const r = msRec("ce", q.id); return r && (r.fading || (r.L >= MC().provLevel && r.due <= now)); })() : (s.lr === 1 && s.st >= 1 && ceDue(q.id) > now && now - s.la >= Math.max(14, 0.75 * (s.iv || 0)) * DAY)) Q.forget.push(q); }
     if (q.local ? (q.added || 0) >= cut : (q.sources || []).some(x => recent.has(x.import_id) || recent.has(x.file))) Q.fresh.push(q); }
   Q.due.sort((a, b) => ceDue(a.id) - ceDue(b.id));
   Q.weak.sort((a, b) => CP.q[b.id].w - CP.q[a.id].w);
@@ -1212,7 +1214,7 @@ function vCePastStats() {
   const exams = CP.sessions.filter(s => s.paper).slice().reverse();
   const subs = [...groupBy(all, q => q.subject).entries()].map(([k, qs]) => ({ k, qs, g: ceStats(qs) })).sort((a, b) => (a.g.ans >= 3 ? a.g.acc : 2) - (b.g.ans >= 3 ? b.g.acc : 2) || b.qs.length - a.qs.length);
   const missed = all.filter(q => CP.q[q.id] && CP.q[q.id].w > 0).sort((a, b) => CP.q[b.id].w - CP.q[a.id].w || CP.q[b.id].la - CP.q[a.id].la).slice(0, 12);
-  const st = ["New", "Learning", "Weak", "Mastered"], sc = Object.fromEntries(st.map(x => [x, 0])); for (const q of all) sc[ceStatus(q.id)]++;
+  const st = ["New", "Learning", "Weak", "Improving", "Provisional", "Mastered"], sc = Object.fromEntries(st.map(x => [x, 0])); for (const q of all) sc[ceStatus(q.id)]++;
   const stc = ["var(--soft)", "var(--s2)", "var(--bad)", "var(--s6)"];
   afterRender = () => drawTrend("#pasttrend", all, CP.log);
   return `<h1>Past-question stats</h1><p class="sub">Your practice on questions from real PSC examinations only, kept separate from the rest of the bank.</p>
@@ -1246,10 +1248,10 @@ function ceSubjects() {
 const ceTopics = qs => { const m = new Map(); for (const q of qs) { const t = q.topic || "General"; if (!m.has(t)) m.set(t, []); m.get(t).push(q); } return [...m.entries()].sort((a, b) => b[1].length - a[1].length); };
 
 // ------------------------------------------------------------------ CE nav
-const CE_NAV = [["Practice", [["ce_dash", "Home", "⌂", 1], ["habit", "Daily goal", "◎", 0], ["ce_practice", "Practice", "✎", 1], ["ce_past", "Past Questions", "★", 1], ["ce_revise", "Revision Centre", "↻", 1], ["ce_attempted", "Attempted & weak", "◐", 0], ["ce_progress", "Progress", "◔", 0]]],
+const CE_NAV = [["Practice", [["ce_dash", "Home", "⌂", 1], ["mastery", "Mastery", "◉", 0], ["habit", "Daily goal", "◎", 0], ["ce_practice", "Practice", "✎", 1], ["ce_past", "Past Questions", "★", 1], ["ce_revise", "Revision Centre", "↻", 1], ["ce_attempted", "Attempted & weak", "◐", 0], ["ce_progress", "Progress", "◔", 0]]],
   ["Library", [["ce_bank", "Question Bank", "☰", 0], ["ce_subjects", "Subjects", "▦", 0], ["ce_analytics", "Analytics", "▤", 0], ["ce_past_stats", "Past-question stats", "▥", 0]]],
   ["Manage", [["ce_import", "Add questions", "⇣", 0]]]];
-const isCE = r => String(r).startsWith("ce_");
+const isCE = r => String(r).startsWith("ce_") || (r === "mastery" && typeof MS !== "undefined" && MS.tab === "ce");
 
 // ------------------------------------------------------------------ landing: choose a module
 function vHome() {
@@ -1520,7 +1522,7 @@ function ceFilter() {
     if (F.subj && q.subject !== F.subj) return false;
     if (F.topic && (q.topic || "General") !== F.topic) return false;
     if (F.src && !(q.sources || []).some(x => (x.book || x.file) === F.src)) return false;
-    if (F.st) { const k = F.st; if (k === "wrong" && !(s && s.w)) return false; if (k === "unsure" && !(s && s.un)) return false; if (k === "weak" && ceStatus(q.id) !== "Weak") return false; if (k === "never" && s && s.a) return false; if (k === "marked" && !CP.marks[q.id]) return false; if (k === "all" && !(s && s.a)) return false; if (k === "mastered" && ceStatus(q.id) !== "Mastered") return false; if (k === "learning" && ceStatus(q.id) !== "Learning") return false; if (k === "flag" && ceOK(q)) return false; if (k === "past" && !cePast(q)) return false; }
+    if (F.st) { const k = F.st; if (k === "wrong" && !(s && s.w)) return false; if (k === "unsure" && !(s && s.un)) return false; if (k === "weak" && ceStatus(q.id) !== "Weak") return false; if (k === "never" && s && s.a) return false; if (k === "marked" && !CP.marks[q.id]) return false; if (k === "all" && !(s && s.a)) return false; if (k === "mastered" && ceStatus(q.id) !== "Mastered") return false; if (k === "learning" && ceStatus(q.id) !== "Learning") return false; if (k === "improving" && ceStatus(q.id) !== "Improving") return false; if (k === "provisional" && ceStatus(q.id) !== "Provisional") return false; if (k === "flag" && ceOK(q)) return false; if (k === "past" && !cePast(q)) return false; }
     if (!t.length) return true;
     const bl = q._b || (q._b = ceNorm([q.id, q.question, q.options.map(o => o.text).join(" "), q.topic, ceSubjLabel(q.subject), (q.notes || {}).explanation, (q.sources || []).map(x => x.book || x.file).join(" ")].join(" ")));
     return t.every(w => bl.includes(w)); });
@@ -1539,7 +1541,7 @@ function vCeBank() {
   <div class="row" style="margin-top:12px">
     ${sel("subj", F.subj, subs.map(s => [s.key, s.label]), "All subjects")}
     ${sel("topic", F.topic, topics.map(t => [t, t]), "All topics")}
-    ${sel("st", F.st, [["never", "Never answered"], ["all", "Attempted"], ["wrong", "Answered incorrectly"], ["weak", "Weak"], ["learning", "Learning"], ["mastered", "Mastered"], ["unsure", "Unsure"], ["marked", "Marked for review"], ["flag", "Not in quizzes (needs checking)"], ["past", "Past exam questions"]], "Any status")}
+    ${sel("st", F.st, [["never", "Never answered"], ["all", "Attempted"], ["wrong", "Answered incorrectly"], ["weak", "Weak"], ["learning", "Learning"], ["improving", "Improving"], ["provisional", "Provisional mastery"], ["mastered", "Mastered"], ["unsure", "Unsure"], ["marked", "Marked for review"], ["flag", "Not in quizzes (needs checking)"], ["past", "Past exam questions"]], "Any status")}
     <details style="display:inline-block"><summary class="faint">More filters</summary><div class="row" style="margin-top:8px">${sel("src", F.src, books.map(b => [b, b.length > 60 ? b.slice(0, 60) + "…" : b]), "Any source")}</div></details>
     <button class="btn sm ghost" onclick="CEB_F=CEB_BLANK();render()">Reset</button></div></section>
   <div class="spread" style="margin:4px 2px 10px"><span class="muted">${qs.length.toLocaleString()} result${qs.length === 1 ? "" : "s"}${qs.length !== ready ? ` · ${ready.toLocaleString()} ready for quizzes` : ""}</span>
@@ -1557,7 +1559,7 @@ function ceExportCSV() {
 // ------------------------------------------------------------------ analytics
 function vCeAnalytics() {
   const qs = CEQ, g = ceStats(qs), now = Date.now();
-  const st = ["New", "Learning", "Weak", "Mastered"], sc = Object.fromEntries(st.map(x => [x, 0])); for (const q of qs) sc[ceStatus(q.id)]++;
+  const st = ["New", "Learning", "Weak", "Improving", "Provisional", "Mastered"], sc = Object.fromEntries(st.map(x => [x, 0])); for (const q of qs) sc[ceStatus(q.id)]++;
   const stc = ["var(--soft)", "var(--s2)", "var(--bad)", "var(--s6)"];
   const wk = (a, b) => { const l = CP.log.filter(x => x[1] >= now - a * DAY && x[1] < now - b * DAY); return { n: l.length, acc: l.length ? Math.round(100 * l.filter(x => x[2] === 1).length / l.length) : null }; };
   const w1 = wk(7, 0), w2 = wk(14, 7); const seen = new Set(); let fa = 0, fc = 0, ra = 0, rc = 0;
@@ -1579,7 +1581,7 @@ function vCeAnalytics() {
       ${tops.length ? `<div class="heat" style="margin-top:8px">${tops.map(([t, tq]) => { const tg = ceStats(tq), ok = tg.ans >= 5, i = ok ? Math.min(5, 1 + Math.floor(tg.acc * 5)) : 0;
         return `<div class="cell" style="background:${cols[i]};color:${i >= 4 ? "#fff" : "var(--ink)"}" onclick="go('ce_subject','${s.key}')">${esc(t)}<b>${ok ? Math.round(tg.acc * 100) + "%" : "—"}</b><span style="opacity:.8">${tg.att}/${tq.length} tried</span></div>`; }).join("")}</div>` : `<p class="faint">No topic has 5 or more questions yet.</p>`}</details>`; }).join("")}</section>`;
 }
-function ceStatusTag(q) { const s = ceStatus(q.id); return s === "New" ? "" : `<span class="tag ${s === "Weak" ? "bad" : s === "Mastered" ? "ok" : "acc"}">${s}</span>`; }
+function ceStatusTag(q) { const s = ceStatus(q.id); return s === "New" ? "" : `<span class="tag ${s === "Weak" ? "bad" : s === "Mastered" || s === "Provisional" ? "ok" : "acc"}">${s}</span>`; }
 function ceShow(id) {
   const q = CEMAP.get(id); if (!q) return; const s = CP.q[id];
   const src = (q.sources || []).map(x => `<li>${esc(x.book || x.file)}${x.qno ? `, question ${x.qno}` : ""}${x.page ? `, page ${x.page}` : ""}</li>`).join("");
@@ -1593,7 +1595,7 @@ function ceShow(id) {
   ${ceNotes(q, null)}
   ${cePast(q) ? `<h3>Asked in</h3><ul>${q.past.map(x => `<li>${esc(x.exam)}, ${esc(cePDate(x))}, question ${x.qno}</li>`).join("")}</ul>` : ""}
   <h3>Source</h3><ul>${src}</ul>
-  <h3>Your history</h3><p class="muted">${s && s.a ? `Answered ${s.a}× · ${s.c} correct · ${s.w} wrong · last ${ago(s.la)} · ${ceStatus(id)}` : "Not attempted yet."}</p>
+  <h3>Your history</h3><p class="muted">${s && s.a ? `Answered ${s.a}× · ${s.c} correct · ${s.w} wrong · last ${ago(s.la)} · ${ceStatus(id)}${typeof msWhy === "function" ? "<br>" + esc(msWhy("ce", id)) : ""}` : "Not attempted yet."}</p>
   <div class="row"><button class="btn" onclick="CP.marks['${id}']?delete CP.marks['${id}']:CP.marks['${id}']=Date.now();ceSave();ceShow('${id}')">${CP.marks[id] ? "Unmark review" : "Mark for review"}</button>${ceOK(q) ? `<button class="btn pri" onclick="closeModal();ceBegin({label:'Single question',explain:'now',time:0,neg:0,mode:'full'},[CEMAP.get('${id}')])">Practise</button>` : ""}</div>`);
 }
 
@@ -1923,6 +1925,458 @@ function hMerge(X) { if (!X || !X.days) return; for (const [k, d] of Object.entr
   if (!c) H.days[k] = d; else { c.g = c.g.map((v, i) => Math.max(v, (d.g || [])[i] || 0)); c.c = c.c.map((v, i) => Math.max(v, (d.c || [])[i] || 0)); } }
   if (X.since && X.since < H.since) H.since = X.since; HCACHE = null; hSave(); }
 hLoad();
+
+// ================================================================== MASTERY ENGINE (both modules)
+// Every question's mastery is derived from its answer history (P.log for General Knowledge, CP.log for
+// Computer Engineer), so it survives refreshes, imports and app updates and can never be counted twice.
+// Only settings, milestone dates and chart choices live in their own store (key psc-mastery:v1).
+const MKEY = "psc-mastery:v1";
+const MDEF = { iv: [1, 3, 7, 14, 30, 60], wrongMin: 20, provLevel: 3, mastLevel: 5, gapFrac: 0.5, minGapH: 12 };
+let MS;
+function msLoad() { let x = null; try { x = JSON.parse(localStorage.getItem(MKEY) || "null"); } catch (e) { } MS = Object.assign({ v: 1, cfg: {}, miles: {}, base: 0, range: 30, tab: "all" }, x || {}); }
+function msSave() { try { localStorage.setItem(MKEY, JSON.stringify(MS)); } catch (e) { } }
+msLoad();
+const MC = () => ({ ...MDEF, ...MS.cfg });
+const MST = ["New", "Learning", "Weak", "Improving", "Provisional", "Mastered"];
+const MSTL = { New: "Unseen", Learning: "Learning", Weak: "Weak", Improving: "Improving", Provisional: "Provisional mastery", Mastered: "Mastered" };
+const MCOL = { New: "#cfd6e3", Learning: "#8fb0e6", Weak: "#d9534f", Improving: "#e0a33a", Provisional: "#5fb07a", Mastered: "#15703a" };
+const MMOD = { gk: "General Knowledge", ce: "Computer Engineer" };
+
+// ---- sources
+function msQs(mod) { return mod === "gk" ? pool().filter(q => !q.is_sample && isMCQ(q)) : CEQ.filter(ceOK); }
+function msAll(mod) { return mod === "gk" ? pool().filter(q => !q.is_sample) : CEQ; }
+function msLog(mod) { return mod === "gk" ? P.log : CP.log; }
+const msQ = (mod, id) => mod === "gk" ? QMAP.get(id) : CEMAP.get(id);
+
+// ---- replay one module's history into per-question records
+const MCACHE = {};
+function msStatusOf(r, C) {
+  if (!r || !r.a) return "New";
+  if (r.L >= C.mastLevel && r.lastRes === 1) return "Mastered";
+  if (r.L >= C.provLevel) return "Provisional";
+  if (r.lastRes === 0) return (r.w >= 2 || r.lapses >= 1) ? "Weak" : "Learning";
+  if (r.w >= 3 && r.L < 2) return "Weak";
+  return r.w >= 1 ? "Improving" : "Learning";
+}
+function msBuild(mod) {
+  const log = msLog(mod), C = MC(), now = Date.now(), last = log.length ? log[log.length - 1][1] : 0;
+  const key = log.length + "|" + last + "|" + Math.floor(now / 60000) + "|" + JSON.stringify(C);
+  if (MCACHE[mod] && MCACHE[mod].key === key) return MCACHE[mod];
+  const R = new Map(), sorted = log.slice().sort((a, b) => a[1] - b[1]);
+  for (const l of sorted) {
+    const id = l[0], ts = l[1], res = mod === "gk" ? l[2] : (l[2] ? 1 : 0), un = mod === "gk" ? !!l[6] : !!l[5];
+    if (mod === "gk" && res === -1) continue;
+    let r = R.get(id);
+    if (!r) { r = { a: 0, c: 0, w: 0, L: 0, iv: 0, due: 0, lastTs: 0, lastRes: null, lastUn: false, lapses: 0, wasMastered: false, firstTs: ts, lastWrongTs: 0, lastChosen: "", wrongChosen: [], recovered: false, ev: [], spaced: 0 }; R.set(id, r); }
+    const st0 = msStatusOf(r, C);
+    r.a++;
+    if (res === 1) {
+      r.c++;
+      const spaced = !r.due || ts >= r.due || (ts - r.lastTs) >= Math.max(C.minGapH * HOUR, C.gapFrac * r.iv * DAY);
+      if (un) { if (!r.L) r.due = sod(ts) + C.iv[0] * DAY; }
+      else if (spaced) { r.L = Math.min(r.L + 1, C.iv.length); r.iv = C.iv[r.L - 1]; r.due = sod(ts) + r.iv * DAY; r.spaced++; }
+      if (r.L >= C.mastLevel) r.wasMastered = true;
+      if (r.w && r.L >= C.provLevel) r.recovered = true;
+    } else {
+      r.w++; r.lastWrongTs = ts; r.wrongChosen.push([ts, l[3] || ""]); if (r.wrongChosen.length > 8) r.wrongChosen.shift();
+      if (r.L >= C.provLevel) r.lapses++;
+      r.L = 0; r.iv = 0; r.due = ts + C.wrongMin * MIN; r.spaced = 0;
+    }
+    r.lastTs = ts; r.lastRes = res; r.lastUn = res === 1 && un; r.lastChosen = l[3] || "";
+    const st1 = msStatusOf(r, C); if (st1 !== st0 || !r.ev.length) r.ev.push([ts, MST.indexOf(st1)]);
+  }
+  for (const r of R.values()) {   // a provisional or mastered question left unreviewed for a whole interval past its due date is fading
+    r.raw = msStatusOf(r, C); r.fading = r.L >= C.provLevel && r.due && now > r.due + r.iv * DAY;
+    r.status = r.fading ? (r.raw === "Mastered" ? "Provisional" : "Improving") : r.raw;
+  }
+  return (MCACHE[mod] = { key, R, C });
+}
+const msRec = (mod, id) => msBuild(mod).R.get(id);
+function msStatus(mod, id) { const r = msRec(mod, id); return r ? r.status : "New"; }
+function msDue(mod, id) { const r = msRec(mod, id); return r ? r.due : null; }
+const msIsDue = (mod, id) => { const r = msRec(mod, id); return !!(r && r.due && r.due <= Date.now()); };
+function msWhy(mod, id) {
+  const r = msRec(mod, id), C = MC(); if (!r) return "Unseen: not attempted yet.";
+  const need = Math.max(0, C.mastLevel - r.L), dueTxt = r.due <= Date.now() ? "due now" : "next review " + fdate(r.due);
+  let why = `${r.a} answer${r.a > 1 ? "s" : ""} (${r.c} correct, ${r.w} wrong). Recall level ${r.L} of ${C.mastLevel}: ${r.spaced} spaced correct recall${r.spaced === 1 ? "" : "s"} since the last mistake. `;
+  if (r.status === "Mastered") why += `Mastered: recalled correctly after a ${C.iv[C.mastLevel - 2]}-day gap. Stays in revision — ${dueTxt}.`;
+  else if (r.fading) why += `Was ${r.raw === "Mastered" ? "mastered" : "provisionally mastered"}, but it is overdue for review, so it counts one stage lower until you recall it again.`;
+  else if (r.lastRes === 0) why += `Last answer was wrong${r.lapses ? " after it had been learned (lapse)" : ""}, so it restarts at level 0 — ${dueTxt}.`;
+  else if (r.lastUn) why += `Last correct answer was marked "not sure", so it did not count towards mastery.`;
+  else why += `${need} more spaced correct recall${need === 1 ? "" : "s"} to reach mastery — ${dueTxt}.`;
+  return why;
+}
+
+// ---- grouping: subjects → topics, and concepts (one question can belong to several concepts)
+function msSubjects(mod) {
+  const qs = msQs(mod);
+  if (mod === "gk") return subjectsPresent().map(s => ({ key: s.key, label: s.label, qs: s.qs.filter(isMCQ), topics: s.topics.map(t => ({ key: t.key, label: t.label, qs: t.qs.filter(isMCQ) })).filter(t => t.qs.length) })).filter(s => s.qs.length);
+  const by = groupBy(qs, q => q.subject || "other");
+  return [...by.entries()].map(([k, list]) => {
+    const tm = groupBy(list, q => q.topic || "General"), big = [], small = [];
+    for (const [t, l] of tm) (l.length >= 4 ? big : small).push(...(l.length >= 4 ? [{ key: k + "|" + t, label: t, qs: l }] : l));
+    if (small.length) big.push({ key: k + "|_other", label: "Other topics", qs: small });
+    return { key: k, label: ceSubjLabel(k), qs: list, topics: big.sort((a, b) => b.qs.length - a.qs.length) };
+  }).sort((a, b) => b.qs.length - a.qs.length);
+}
+function msConcepts(mod) {
+  const m = new Map(), add = (k, lab, q) => { const n = String(k || "").trim().toLowerCase(); if (!n) return; if (!m.has(n)) m.set(n, { key: n, label: lab, qs: [] }); m.get(n).qs.push(q); };
+  for (const q of msQs(mod)) {
+    if (mod === "gk") add(q.primary_category, topicLabel(q.primary_category) + " (" + subjLabel(subjOf(q.primary_category)) + ")", q);
+    else { const seen = new Set(); for (const c of [q.topic, ...((q.notes || {}).related || [])]) { const n = String(c || "").trim().toLowerCase(); if (n && !seen.has(n)) { seen.add(n); add(n, c, q); } } }
+  }
+  return [...m.values()].filter(c => c.qs.length >= 5);
+}
+function msG(mod, qs) {   // stats for any group of questions
+  const { R } = msBuild(mod), now = Date.now(), g = { total: qs.length, att: 0, c: 0, w: 0, rep: 0, due: 0, lapses: 0, late: 0, n: Object.fromEntries(MST.map(s => [s, 0])) };
+  for (const q of qs) { const r = R.get(q.id); if (!r) { g.n.New++; continue; }
+    g.att++; g.c += r.c; g.w += r.w; g.n[r.status]++; if (r.w >= 2) g.rep++; if (r.due <= now) g.due++; g.lapses += r.lapses; if (r.w >= 2 && r.lastRes === 1) g.late++; }
+  g.acc = g.c + g.w ? g.c / (g.c + g.w) : null; g.mast = g.n.Mastered; g.prov = g.n.Provisional; g.left = g.total - g.mast; g.pct = g.total ? g.mast / g.total : 0;
+  g.label = !g.att ? "Not started" : g.pct >= 0.9 ? "Nearly mastered" : (g.acc != null && g.c + g.w >= 8 && g.acc < 0.6) || g.n.Weak >= Math.max(3, 0.2 * g.att) ? "Weak" : g.pct < 0.4 && g.att >= 0.5 * g.total ? "Needs attention" : (g.n.Improving + g.prov) > g.n.Weak ? "Improving" : "Learning";
+  return g;
+}
+function msWeakConcepts(mod, n = 8) {
+  return msConcepts(mod).map(c => ({ ...c, g: msG(mod, c.qs) }))
+    .filter(c => c.g.att >= 3 && (c.g.acc < 0.6 || c.g.rep >= 2 || c.g.lapses >= 2))
+    .map(c => ({ ...c, score: (1 - (c.g.acc || 0)) * 3 + c.g.rep + c.g.lapses * 1.5 + c.g.n.Weak }))
+    .sort((a, b) => b.score - a.score).slice(0, n);
+}
+function msSummary(mod) {
+  const qs = msQs(mod), g = msG(mod, qs), { R } = msBuild(mod), now = Date.now();
+  let risk = 0, guess = 0, recovered = 0, lapsed = 0;
+  for (const q of qs) { const r = R.get(q.id); if (!r) continue; if (r.fading || (r.L >= MC().provLevel && r.due <= now)) risk++; if (r.lastUn) guess++; if (r.recovered && r.L >= MC().provLevel) recovered++; if (r.lapses && r.L < MC().provLevel) lapsed++; }
+  return { ...g, risk, guess, recovered, lapsed, held: msAll(mod).length - qs.length };
+}
+function msCombined() { const a = msSummary("gk"), b = msSummary("ce"), o = {};
+  for (const k of ["total", "att", "c", "w", "rep", "due", "mast", "prov", "left", "risk", "guess", "recovered", "lapsed", "held"]) o[k] = (a[k] || 0) + (b[k] || 0);
+  o.n = Object.fromEntries(MST.map(s => [s, a.n[s] + b.n[s]])); o.pct = o.total ? o.mast / o.total : 0; o.acc = o.c + o.w ? o.c / (o.c + o.w) : null; return o; }
+const msSum = tab => tab === "gk" ? msSummary("gk") : tab === "ce" ? msSummary("ce") : msCombined();
+const msMods = tab => tab === "all" ? ["gk", "ce"] : [tab];
+
+// ---- practice lists
+function msList(mod, key, arg) {
+  const { R, C } = msBuild(mod), now = Date.now(), qs = msQs(mod), rr = q => R.get(q.id);
+  const seen = qs.filter(rr), past = q => mod === "ce" && typeof cePast === "function" && cePast(q);
+  const byDue = l => l.sort((a, b) => rr(a).due - rr(b).due), byW = l => l.sort((a, b) => rr(b).w - rr(a).w || rr(b).lastWrongTs - rr(a).lastWrongTs);
+  switch (key) {
+    case "due": return byDue(seen.filter(q => rr(q).due <= now));
+    case "repeat": return byW(seen.filter(q => rr(q).w >= 2 && !["Provisional", "Mastered"].includes(rr(q).status)));
+    case "incorrect": return seen.filter(q => rr(q).w > 0).sort((a, b) => rr(b).lastWrongTs - rr(a).lastWrongTs);
+    case "recent": return seen.filter(q => rr(q).lastWrongTs >= now - 7 * DAY).sort((a, b) => rr(b).lastWrongTs - rr(a).lastWrongTs);
+    case "frequent": return byW(seen.filter(q => rr(q).w >= 3));
+    case "multi": return byW(seen.filter(q => rr(q).w >= 2));
+    case "lapsed": return seen.filter(q => rr(q).lapses && rr(q).L < C.provLevel).sort((a, b) => rr(b).lastWrongTs - rr(a).lastWrongTs);
+    case "risk": return byDue(seen.filter(q => rr(q).fading || (rr(q).L >= C.provLevel && rr(q).due <= now)));
+    case "guess": return seen.filter(q => rr(q).lastUn);
+    case "unseen": return shuffle(qs.filter(q => !rr(q) && (!arg || msSubjOf(mod, q) === arg)));
+    case "subject": case "concept": {
+      const inG = key === "subject" ? (q => msSubjOf(mod, q) === arg) : (q => msConceptsOf(mod, q).includes(arg));
+      const l = qs.filter(inG).filter(q => !rr(q) || rr(q).status !== "Mastered" || rr(q).due <= now);
+      const w = q => !rr(q) ? 2 : rr(q).status === "Weak" ? 0 : rr(q).due <= now ? 1 : 3;
+      return shuffle(l).sort((a, b) => w(a) - w(b));
+    }
+    case "past": return shuffle(qs.filter(past));
+    case "pastweak": return byW(seen.filter(q => past(q) && (rr(q).w > 0 && rr(q).status !== "Mastered")));
+    case "pastnew": return shuffle(qs.filter(q => past(q) && !rr(q)));
+    case "pastdue": return byDue(seen.filter(q => past(q) && rr(q).due <= now));
+    case "pastmix": { const p = shuffle(qs.filter(past)).slice(0, 15), o = shuffle(qs.filter(q => !past(q))).slice(0, 15); return shuffle([...p, ...o]); }
+    case "mock": { const p = shuffle(qs.filter(past)), o = shuffle(qs.filter(q => !past(q))); return shuffle([...p.slice(0, 30), ...o.slice(0, 50 - Math.min(30, p.length))]); }
+  }
+  return [];
+}
+const msSubjOf = (mod, q) => mod === "gk" ? subjOf(q.primary_category) : (q.subject || "other");
+const msConceptsOf = (mod, q) => mod === "gk" ? [String(q.primary_category).toLowerCase()] : [q.topic, ...((q.notes || {}).related || [])].map(c => String(c || "").trim().toLowerCase()).filter(Boolean);
+const MSL = { due: "Due for revision", repeat: "Repeated mistakes", incorrect: "All incorrect questions", recent: "Recently incorrect (7 days)", frequent: "Frequently incorrect (3+ times)", multi: "Wrong more than once",
+  lapsed: "Forgotten after mastery", risk: "At risk of being forgotten", guess: "Correct but not sure", unseen: "Never attempted", subject: "Subject challenge", concept: "Concept focus",
+  past: "Past questions", pastweak: "Weak past questions", pastnew: "Unattempted past questions", pastdue: "Past questions due", pastmix: "Past + regular mix", mock: "Timed mock exam" };
+function msStart(mod, key, arg, n) {
+  const list = msList(mod, key, arg); if (!list.length) { toast("Nothing in this set right now."); return; }
+  const mock = key === "mock", N = Math.min(list.length, n || (mock ? 50 : 30)), qs = list.slice(0, N);
+  const label = MSL[key] + (arg ? " — " + (key === "subject" ? (mod === "gk" ? subjLabel(arg) : ceSubjLabel(arg)) : arg) : "");
+  if (mod === "gk") startQuiz({ label, count: N, explain: mock ? "end" : "now", negative: 0, time: mock ? 50 : 0, mode: "mastery_" + key }, qs);
+  else ceBegin({ label, explain: mock ? "end" : "now", time: mock ? 50 : 0, neg: mock ? 0.2 : 0, mode: "mastery_" + key }, qs);
+}
+
+// ---- recommendations (real data, priority order)
+function msRecs(tab, max = 6) {
+  const out = [];
+  for (const mod of msMods(tab)) {
+    const s = msSummary(mod), tag = tab === "all" ? MMOD[mod] + ": " : "", L = k => msList(mod, k).length;
+    const due = L("due"); if (due) out.push({ p: 1, mod, key: "due", t: `${tag}Revise ${Math.min(30, due)} overdue question${due > 1 ? "s" : ""}`, d: `${due} due by the spaced-revision schedule. Clearing these protects what you already know.`, n: due });
+    const rep = L("repeat"); if (rep) out.push({ p: 2, mod, key: "repeat", t: `${tag}Fix your ${Math.min(30, rep)} most repeated mistakes`, d: `${rep} question${rep > 1 ? "s" : ""} answered wrong at least twice and not yet recovered.`, n: rep });
+    const lap = L("lapsed"); if (lap) out.push({ p: 2.5, mod, key: "lapsed", t: `${tag}Re-learn ${Math.min(30, lap)} forgotten question${lap > 1 ? "s" : ""}`, d: "You had learned these, then got them wrong.", n: lap });
+    const wc = msWeakConcepts(mod, 1)[0]; if (wc) out.push({ p: 3, mod, key: "concept", arg: wc.key, t: `${tag}Strengthen "${wc.label}"`, d: `${wc.g.att} tried · ${fp(wc.g.acc == null ? null : Math.round(wc.g.acc * 100))} accuracy · ${wc.g.rep} repeated mistake${wc.g.rep === 1 ? "" : "s"} · ${Math.round(wc.g.pct * 100)}% mastered.`, n: wc.qs.length });
+    const subs = msSubjects(mod).map(x => ({ ...x, g: msG(mod, x.qs) })).filter(x => x.qs.length >= 10);
+    const unseenSub = subs.filter(x => x.g.n.New).sort((a, b) => (a.g.att / a.g.total) - (b.g.att / b.g.total))[0];
+    if (unseenSub) out.push({ p: 4, mod, key: "unseen", arg: unseenSub.key, t: `${tag}Start ${Math.min(30, unseenSub.g.n.New)} unseen ${unseenSub.label} questions`, d: `${unseenSub.g.n.New.toLocaleString()} of ${unseenSub.g.total.toLocaleString()} never attempted — your least-covered subject.`, n: unseenSub.g.n.New });
+    const risk = L("risk"); if (risk) out.push({ p: 5, mod, key: "risk", t: `${tag}Revisit ${Math.min(30, risk)} mastered question${risk > 1 ? "s" : ""} at risk`, d: "Learned earlier and now due or overdue — recall them before they fade.", n: risk });
+    const low = subs.filter(x => x.g.att >= 10).sort((a, b) => a.g.pct - b.g.pct)[0];
+    if (low) out.push({ p: 6, mod, key: "subject", arg: low.key, t: `${tag}Improve ${low.label} mastery from ${Math.round(low.g.pct * 100)}%`, d: `${low.g.left.toLocaleString()} questions left in this subject; weakest and due questions come first.`, n: low.g.left });
+    if (s.guess) out.push({ p: 6.5, mod, key: "guess", t: `${tag}Confirm ${Math.min(30, s.guess)} answers you were unsure of`, d: "Correct, but marked not sure — they don't count towards mastery yet.", n: s.guess });
+    const nev = L("unseen"); if (nev && !unseenSub) out.push({ p: 7, mod, key: "unseen", t: `${tag}Try ${Math.min(30, nev)} never-attempted questions`, d: `${nev.toLocaleString()} questions not seen yet.`, n: nev });
+  }
+  return out.sort((a, b) => a.p - b.p).slice(0, max);
+}
+
+// ---- progress over time (replays status changes into daily totals)
+function msTimeline(mods, N) {
+  const end0 = sod() + DAY - (N - 1) * DAY, m = new Array(N + 1).fill(0), p = new Array(N + 1).fill(0), a = new Array(N + 1).fill(0);
+  const di = ts => Math.max(0, Math.min(N, Math.floor((ts - (end0 - DAY)) / DAY)));
+  for (const mod of mods) for (const r of msBuild(mod).R.values()) {
+    a[di(r.firstTs)]++;
+    for (let i = 0; i < r.ev.length; i++) { const [ts, s] = r.ev[i], d0 = di(ts), d1 = i + 1 < r.ev.length ? di(r.ev[i + 1][0]) : N; if (d1 <= d0) continue;
+      if (s === 5) { m[d0]++; m[d1]--; } if (s >= 4) { p[d0]++; p[d1]--; } }
+  }
+  const out = []; let cm = 0, cp = 0, ca = 0;
+  for (let d = 0; d < N; d++) { cm += m[d]; cp += p[d]; ca += a[d]; out.push({ day: end0 - DAY + d * DAY, mast: cm, prov: cp, att: ca }); }
+  return out;
+}
+
+// ---- milestones
+function msMilestones() {
+  const c = msCombined(), L = [];
+  const add = (id, t, d, ok) => L.push({ id, t, d, ok });
+  add("m10", "First 10 questions mastered", "Ten questions recalled correctly across five spaced reviews.", c.mast >= 10);
+  add("m100", "First 100 questions mastered", "", c.mast >= 100);
+  add("m500", "500 questions mastered", "", c.mast >= 500);
+  add("m1000", "1,000 questions mastered", "", c.mast >= 1000);
+  for (const f of [25, 50, 75, 100]) add("p" + f, `${f}% of the question bank mastered`, `${Math.ceil(c.total * f / 100).toLocaleString()} of ${c.total.toLocaleString()} questions.`, c.total && c.pct * 100 >= f);
+  add("rec100", "100 questions recovered from the mistake list", "Questions you once got wrong that are now provisionally mastered or better.", c.recovered >= 100);
+  add("rev7", "Seven consecutive days of revision", "At least one revision answer every study day for a week.", msRevStreak() >= 7);
+  for (const mod of ["gk", "ce"]) for (const s of msSubjects(mod)) if (s.qs.length >= 10) { const g = msG(mod, s.qs); if (g.mast === g.total) add(`sub_${mod}_${s.key}`, `${s.label} fully mastered`, `Every question in this ${MMOD[mod]} subject.`, true); }
+  return L;
+}
+function msRevStreak() {   // consecutive study days (ending today or yesterday) with a revision answer — an answer to a question seen before
+  const days = new Set();
+  for (const mod of ["gk", "ce"]) { const first = new Map(); for (const l of msLog(mod).slice().sort((a, b) => a[1] - b[1])) { if (mod === "gk" && l[2] === -1) continue; if (first.has(l[0])) days.add(dayKey(l[1])); else first.set(l[0], 1); } }
+  let n = 0, x = Date.now(); if (!days.has(dayKey(x))) x -= DAY; while (days.has(dayKey(x))) { n++; x -= DAY; } return n;
+}
+function msCheckMiles() {
+  const L = msMilestones().filter(m => m.ok), fresh = L.filter(m => !MS.miles[m.id]);
+  if (!fresh.length) return;
+  const first = !MS.base; for (const m of fresh) MS.miles[m.id] = Date.now(); if (first) MS.base = Date.now(); msSave();
+  if (!first) setTimeout(() => modal(`<div class="ms-cele"><div class="ms-burst">★</div><h2>${esc(fresh[0].t)}</h2><p class="muted">${esc(fresh[0].d || "A real step towards mastering the whole bank.")}</p>${fresh.length > 1 ? `<p class="faint">Also unlocked: ${fresh.slice(1).map(m => esc(m.t)).join(", ")}</p>` : ""}<button class="btn pri" onclick="closeModal()">Keep going</button></div>`), 300);
+}
+
+// ---- small renderers
+const msJ = v => JSON.stringify(v).replace(/'/g, "\\u0027");
+const msN = n => Number(n || 0).toLocaleString();
+const msP = f => (Math.floor(f * 1000) / 10).toFixed(f > 0 && f < 0.1 ? 1 : f >= 1 ? 0 : 1).replace(/\.0$/, "") + "%";
+function msJourney(s, big) {
+  const order = ["New", "Learning", "Weak", "Improving", "Provisional", "Mastered"];
+  return `<div class="ms-journey ${big ? "big" : ""}">${order.filter(k => s.n[k] > 0).map(k => `<div class="ms-seg" style="flex:${Math.max(s.n[k], s.total * 0.006)};background:${MCOL[k]}" title="${MSTL[k]}: ${msN(s.n[k])}"></div>`).join("")}</div>
+  <div class="ms-legend">${order.map(k => `<span><i style="background:${MCOL[k]}"></i>${MSTL[k]} <b>${msN(s.n[k])}</b></span>`).join("")}</div>`;
+}
+const MSANIM = {};
+function msArc(id, size, stroke, frac, col) {
+  const r = (size - stroke) / 2, C = 2 * Math.PI * r, f = Math.max(0, Math.min(1, frac)), from = MSANIM[id] != null ? MSANIM[id] : 0; MSANIM[id] = f;
+  return f <= 0 ? "" : `<circle class="hr-arc" data-to="${C * (1 - f)}" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${col}" stroke-width="${stroke}" stroke-linecap="butt" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - from)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>`;
+}
+function msRing(id, s, size = 168) {
+  const st = size > 120 ? 18 : 11, r = (size - st) / 2, T = Math.max(1, s.total);
+  return `<div class="ms-ring" style="width:${size}px;height:${size}px"><svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--soft)" stroke-width="${st}"/>
+    ${msArc(id + "p", size, st, (s.mast + s.prov) / T, "#a8d5b5")}${msArc(id + "m", size, st, s.mast / T, "var(--ok)")}</svg>
+    <div class="ms-ringtxt"><b>${msP(s.pct)}</b><span>mastered</span></div></div>`;
+}
+function msToday(mods) {
+  const t0 = typeof hDayStart === "function" ? hDayStart(Date.now()) : sod(); let n = 0, c = 0;
+  for (const mod of mods) for (const l of msLog(mod)) if (l[1] >= t0 && !(mod === "gk" && l[2] === -1)) { n++; if (l[2] === 1 || l[2] === true) c++; }
+  const tl = msTimeline(mods, 2), gain = tl[1].mast - tl[0].mast;
+  return { n, c, acc: n ? c / n : null, gain };
+}
+function msAccount(s, tod) {
+  let info = null; try { if (typeof hDayInfo === "function") { hCompute(); info = hDayInfo(hDay(Date.now())); } } catch (e) { }
+  const left = `${msN(s.left)} questions still to master`;
+  if (info && info.pct >= 1 && s.pct < 0.5) return `Daily target achieved, but only ${msP(s.pct)} of your question bank is mastered — ${left}. Keep going!`;
+  if (tod.n >= 50 && tod.gain <= 0) return `${msN(tod.n)} answers today, but no net gain in mastered questions yet. Mastery comes from spaced recall — clear your due revisions.`;
+  if (tod.gain > 0) return `+${msN(tod.gain)} question${tod.gain > 1 ? "s" : ""} mastered today. ${left}.`;
+  return s.att ? `You have mastered ${msP(s.pct)} of your question bank. ${left}.` : "Mastery starts with your first answer — every question needs several spaced correct recalls.";
+}
+function msRecCards(tab, max) {
+  const R = msRecs(tab, max);
+  if (!R.length) return `<div class="faint">Nothing to recommend yet — answer some questions first.</div>`;
+  return `<div class="ms-recs">${R.map((r, i) => `<button class="ms-rec ${i === 0 ? "top" : ""}" onclick='msStart(${msJ(r.mod)},${msJ(r.key)},${msJ(r.arg || null)})'><span class="ms-rk">${i + 1}</span><span class="ms-rb"><b>${esc(r.t)}</b><span>${esc(r.d)}</span></span><span class="ms-go">Start →</span></button>`).join("")}</div>`;
+}
+
+// ---- home hero (shown first on the home screen) and strips on the module dashboards
+function msHero() {
+  msCheckMiles();
+  const s = msCombined(), tod = msToday(["gk", "ce"]);
+  return `<section class="block ms-hero"><div class="ms-hl">${msRing("home", s)}</div>
+    <div class="ms-hb"><div class="ms-kick">Question mastery · both banks</div>
+      <div class="ms-big"><b>${msN(s.left)}</b> questions left to master</div>
+      <div class="muted">${msN(s.mast)} mastered · ${msN(s.prov)} provisional · ${msN(s.n.New)} never attempted · ${msN(s.total)} in total</div>
+      ${msJourney(s)}
+      <div class="ms-acct">${esc(msAccount(s, tod))}</div>
+      <div class="row" style="margin-top:10px"><button class="btn pri" onclick="go('mastery')">Open mastery dashboard</button>${s.due ? `<button class="btn" onclick="msStart('${msSummary("gk").due >= msSummary("ce").due ? "gk" : "ce"}','due')">Revise due questions</button>` : ""}</div></div></section>
+  <section class="block"><h2 style="margin-top:0">Recommended next practice</h2>${msRecCards("all", 3)}</section>`;
+}
+function msStrip(mod) {
+  const s = msSummary(mod);
+  return `<section class="block ms-strip">${msRing(mod + "strip", s, 92)}<div style="flex:1;min-width:220px"><div class="ms-big sm"><b>${msN(s.left)}</b> of ${msN(s.total)} questions left to master</div>${msJourney(s)}</div>
+    <div class="row"><button class="btn pri" onclick="msStart('${mod}','${s.due ? "due" : "unseen"}')">${s.due ? `Revise ${Math.min(30, s.due)} due` : "Start unseen"}</button><button class="btn" onclick="MS.tab='${mod}';msSave();go('mastery')">Mastery</button></div></section>`;
+}
+function msWrap(r, html) {
+  try { if (r === "home") return msHero() + html; if (r === "dash") return msStrip("gk") + html; if (r === "ce_dash") return msStrip("ce") + html; } catch (e) { console.error(e); }
+  return html;
+}
+
+// ---- the Mastery dashboard
+function msChart(tab) {
+  const N = MS.range || 30, T = msTimeline(msMods(tab), N), tot = msSum(tab).total || 1;
+  const W = 640, H = 190, pad = 34, mx = Math.max(10, ...T.map(t => t.att)), x = i => pad + i * (W - pad - 8) / Math.max(1, N - 1), y = v => H - 22 - v * (H - 40) / mx;
+  const line = (k, col, w) => `<polyline fill="none" stroke="${col}" stroke-width="${w}" points="${T.map((t, i) => x(i).toFixed(1) + "," + y(t[k]).toFixed(1)).join(" ")}"/>`;
+  const f = T[0], l = T[T.length - 1];
+  return `<div class="spread"><h2 style="margin:0">Progress over time</h2><div class="row">${[7, 30, 90].map(n => `<button class="btn sm ${N === n ? "pri" : ""}" onclick="MS.range=${n};msSave();render()">${n} days</button>`).join("")}</div></div>
+  <svg viewBox="0 0 ${W} ${H}" class="ms-chart" role="img" aria-label="Attempted vs mastered questions"><line x1="${pad}" x2="${W - 8}" y1="${H - 22}" y2="${H - 22}" stroke="var(--line)"/>
+    <text x="4" y="${y(mx) + 4}" class="ms-ax">${msN(mx)}</text><text x="4" y="${H - 18}" class="ms-ax">0</text>
+    <text x="${pad}" y="${H - 4}" class="ms-ax">${fdate(f.day)}</text><text x="${W - 8}" y="${H - 4}" class="ms-ax" text-anchor="end">today</text>
+    ${line("att", "#9aa6ba", 2)}${line("prov", "#5fb07a", 2.5)}${line("mast", "#15703a", 3.5)}</svg>
+  <div class="ms-legend"><span><i style="background:#9aa6ba"></i>Attempted (ever) <b>${msN(l.att)}</b> <span class="faint">+${msN(l.att - f.att)}</span></span><span><i style="background:#5fb07a"></i>Provisional or better <b>${msN(l.prov)}</b> <span class="faint">${l.prov - f.prov >= 0 ? "+" : ""}${msN(l.prov - f.prov)}</span></span><span><i style="background:#15703a"></i>Mastered <b>${msN(l.mast)}</b> <span class="faint">${l.mast - f.mast >= 0 ? "+" : ""}${msN(l.mast - f.mast)}</span> · ${msP(l.mast / tot)} of the bank</span></div>`;
+}
+function msHeat(mod) {
+  const subs = msSubjects(mod).map(s => ({ ...s, g: msG(mod, s.qs) }));
+  const col = g => !g.att ? "var(--soft)" : g.label === "Weak" ? "#f6d4d2" : `hsl(140,${30 + g.pct * 40}%,${92 - g.pct * 52}%)`;
+  return `<div class="ms-heat">${subs.map(s => `<button class="ms-tile ${s.g.label === "Weak" ? "weak" : ""}" style="background:${col(s.g)};color:${s.g.pct > 0.55 ? "#fff" : "inherit"}" onclick="msSubjModal('${mod}','${esc(s.key)}')"><b>${esc(s.label)}</b><span class="ms-tp">${msP(s.g.pct)}</span><span class="ms-ts">${esc(s.g.label)} · ${msN(s.g.left)} left${s.g.rep ? ` · ${s.g.rep} repeated mistakes` : ""}</span></button>`).join("")}</div>`;
+}
+function msSubjModal(mod, key) {
+  const s = msSubjects(mod).find(x => x.key === key); if (!s) return; const g = msG(mod, s.qs);
+  const rows = s.topics.map(t => ({ ...t, g: msG(mod, t.qs) })).sort((a, b) => (a.g.att ? a.g.pct : 2) - (b.g.att ? b.g.pct : 2));
+  modal(`<div class="spread"><h2 style="margin:0">${esc(s.label)}</h2><button class="btn sm ghost" onclick="closeModal()">Close</button></div>
+  <p class="muted">${MMOD[mod]} · ${msN(g.total)} questions · ${msN(g.att)} attempted · ${msN(g.mast)} mastered · ${fp(g.acc == null ? null : Math.round(g.acc * 100))} accuracy · ${g.rep} repeated mistakes · ${g.due} due</p>${msJourney(g)}
+  <div class="row" style="margin:12px 0"><button class="btn pri" onclick="closeModal();msStart('${mod}','subject','${esc(key)}')">Subject challenge (30)</button>${g.n.New ? `<button class="btn" onclick="closeModal();msStart('${mod}','unseen','${esc(key)}')">${Math.min(30, g.n.New)} unseen</button>` : ""}</div>
+  <table class="ms-tt"><tr><th>Topic</th><th class="n">Questions</th><th class="n">Tried</th><th class="n">Mastered</th><th class="n">Left</th><th class="n">Accuracy</th><th class="n">Repeated</th><th class="n">Due</th><th>Mastery</th></tr>
+  ${rows.map(t => `<tr><td>${esc(t.label)}</td><td class="n">${t.g.total}</td><td class="n">${t.g.att}</td><td class="n">${t.g.mast}</td><td class="n">${t.g.left}</td><td class="n">${fp(t.g.acc == null ? null : Math.round(t.g.acc * 100))}</td><td class="n">${t.g.rep || ""}</td><td class="n">${t.g.due || ""}</td><td><div class="ms-mini"><i style="width:${t.g.pct * 100}%"></i></div> <span class="tag ${t.g.label === "Weak" ? "bad" : t.g.label === "Nearly mastered" ? "ok" : t.g.label === "Needs attention" ? "warn" : ""}">${msP(t.g.pct)} · ${t.g.label}</span></td></tr>`).join("")}</table>`);
+}
+function msModes(mod) {
+  const K = ["due", "repeat", "recent", "frequent", "multi", "incorrect", "lapsed", "risk", "guess", "unseen"];
+  return `<div class="ms-modes">${K.map(k => { const n = msList(mod, k).length; return `<button class="ms-mode ${n ? "" : "off"}" ${n ? `onclick="msStart('${mod}','${k}')"` : "disabled"}><b>${msN(n)}</b><span>${MSL[k]}</span></button>`; }).join("")}</div>`;
+}
+function msPastPanel() {
+  if (typeof cePast !== "function") return "";
+  const qs = msQs("ce").filter(cePast); if (!qs.length) return ""; const g = msG("ce", qs);
+  const years = new Map(); for (const q of qs) for (const p of q.past || []) { const k = (p.date_bs || "").slice(0, 4) || "?"; if (!years.has(k)) years.set(k, new Set()); years.get(k).add(q); }
+  const exams = new Map(); for (const q of qs) for (const p of q.past || []) { const k = String(p.exam || "Exam").replace(/\s*\(.*?\)\s*/g, " ").trim(); if (!exams.has(k)) exams.set(k, new Set()); exams.get(k).add(q); }
+  const tbl = (m, h) => `<table class="ms-tt"><tr><th>${h}</th><th class="n">Questions</th><th class="n">Mastered</th><th class="n">Unattempted</th><th class="n">Accuracy</th></tr>${[...m.entries()].map(([k, set]) => ({ k, g: msG("ce", [...set]) })).sort((a, b) => (a.g.acc ?? 2) - (b.g.acc ?? 2)).map(r => `<tr><td>${esc(r.k)}</td><td class="n">${r.g.total}</td><td class="n">${r.g.mast}</td><td class="n">${r.g.n.New}</td><td class="n">${fp(r.g.acc == null ? null : Math.round(r.g.acc * 100))}</td></tr>`).join("")}</table>`;
+  const worst = msList("ce", "multi").filter(cePast).slice(0, 5);
+  return `<section class="block"><h2 style="margin-top:0"><span class="tag past">PAST QUESTIONS</span> Examination-wise mastery</h2>
+    <p class="muted">${msN(g.total)} past questions · ${msN(g.mast)} mastered · ${msN(g.n.New)} unattempted · ${fp(g.acc == null ? null : Math.round(g.acc * 100))} accuracy</p>${msJourney(g)}
+    <div class="row" style="margin:12px 0">${[["past", "Only past questions"], ["pastweak", "Weak past"], ["pastnew", "Unattempted past"], ["pastdue", "Past due for revision"], ["pastmix", "Past + regular mix"], ["mock", "Timed mock exam (50 q, 50 min, −0.2)"]].map(([k, l]) => { const n = msList("ce", k).length; return `<button class="btn sm ${k === "mock" ? "pri" : ""}" ${n ? `onclick="msStart('ce','${k}')"` : "disabled"}>${l}${k === "mock" || k === "pastmix" ? "" : ` (${n})`}</button>`; }).join("")}</div>
+    <div class="grid2"><div><h3>By examination year (lowest accuracy first)</h3>${tbl(years, "Year (BS)")}</div><div><h3>By examination / level</h3>${tbl(exams, "Examination")}</div></div>
+    ${worst.length ? `<h3>Past questions you keep getting wrong</h3><ul>${worst.map(q => `<li><a href="#" onclick="ceShow('${q.id}');return false">${esc(q.question.slice(0, 110))}</a> <span class="tag bad">wrong ${msRec("ce", q.id).w}×</span> ${cePastTag(q, true)}</li>`).join("")}</ul>` : ""}
+    ${msMockHistory()}</section>`;
+}
+function msMockHistory() {
+  const L = [...(P.sessions || []).filter(s => String((s.cfg || {}).mode || s.mode || "").includes("mock")).map(s => ({ d: s.ts || s.start, n: s.n || (s.items || []).length, c: s.correct ?? s.c, w: s.wrong ?? s.w, m: "GK" })),
+    ...(CP.sessions || []).filter(s => String(s.mode || "").includes("mock")).map(s => ({ d: s.d, n: s.n, c: s.c, w: s.w, m: "CE" }))].sort((a, b) => b.d - a.d).slice(0, 6);
+  return L.length ? `<h3>Mock exam history</h3><table class="ms-tt"><tr><th>Date</th><th>Bank</th><th class="n">Questions</th><th class="n">Correct</th><th class="n">Wrong</th><th class="n">Score</th></tr>${L.map(s => `<tr><td>${fdate(s.d)}</td><td>${s.m}</td><td class="n">${s.n}</td><td class="n">${s.c ?? "—"}</td><td class="n">${s.w ?? "—"}</td><td class="n">${s.c != null ? (s.m === "CE" ? (s.c - 0.2 * s.w).toFixed(1) : s.c) : "—"}</td></tr>`).join("")}</table>` : "";
+}
+function msNotebook(tab) {
+  const rows = [];
+  for (const mod of msMods(tab)) { const { R } = msBuild(mod); for (const q of msQs(mod)) { const r = R.get(q.id); if (r && r.w) rows.push({ mod, q, r }); } }
+  rows.sort((a, b) => b.r.w - a.r.w || b.r.lastWrongTs - a.r.lastWrongTs);
+  const opt = (mod, q, k) => { if (!k) return "(did not know)"; const o = (q.options || []).find(o => o.key === k); return o ? o.text : k; };
+  const expl = (mod, q) => mod === "gk" ? (q.explanation || "") : ((q.notes || {}).explanation || q.explanation || "");
+  const show = (mod, id) => mod === "gk" ? `showQ('${id}')` : `ceShow('${id}')`;
+  const top = rows.slice(0, 60);
+  return `<p class="muted">${msN(rows.length)} questions answered wrong at least once${rows.length > 60 ? " — the 60 most repeated are shown" : ""}. The notebook is permanent: a question stays here (marked recovered) after you fix it.</p>
+  <div class="ms-nb">${top.map(({ mod, q, r }) => { const lastWrong = r.wrongChosen[r.wrongChosen.length - 1] || []; const ans = mod === "gk" ? ansText(q) : ceAns(q); const ex = expl(mod, q);
+    return `<div class="ms-nbr ${["Provisional", "Mastered"].includes(r.status) ? "rec" : ""}"><div class="spread"><span class="faint">${tab === "all" ? MMOD[mod] + " · " : ""}${esc(mod === "gk" ? topicLabel(q.primary_category) : ceSubjLabel(q.subject) + (q.topic ? " › " + q.topic : ""))}</span><span><span class="tag bad">wrong ${r.w}×</span> <span class="tag ${r.status === "Weak" ? "bad" : ["Provisional", "Mastered"].includes(r.status) ? "ok" : "warn"}">${["Provisional", "Mastered"].includes(r.status) ? "Recovered · " : ""}${MSTL[r.status]}</span>${mod === "ce" && typeof cePast === "function" && cePast(q) ? " " + cePastTag(q, true) : ""}</span></div>
+      <div class="ms-nbq"><a href="#" onclick="${show(mod, q.id)};return false">${esc(q.question.length > 220 ? q.question.slice(0, 220) + "…" : q.question)}</a></div>
+      <div class="ms-nbg"><span>Your answer: <b class="bad">${esc(opt(mod, q, lastWrong[1]))}</b></span><span>Correct: <b class="okc">${esc(ans)}</b></span><span>Last attempt ${ago(r.lastTs)}</span><span>Next revision ${r.due <= Date.now() ? "<b>due now</b>" : fdate(r.due)}</span></div>
+      ${ex ? `<details><summary>Explanation</summary><p class="muted">${esc(ex)}</p></details>` : ""}</div>`; }).join("")}</div>`;
+}
+function msHow() {
+  const C = MC();
+  return `<p>Each question earns a <b>recall level</b> from your answer history. A correct answer raises the level only when it is <b>spaced</b>: given on or after the question's due date, or at least ${C.minGapH} hours and ${Math.round(C.gapFrac * 100)}% of the current interval after the previous attempt. Immediate repeats, and correct answers marked "not sure", don't raise it.</p>
+  <table class="ms-tt"><tr><th>Event</th><th>Effect</th></tr>
+  <tr><td>Wrong answer</td><td>Level back to 0; asked again ${C.wrongMin} minutes later (same study day). A wrong answer at level ${C.provLevel}+ counts as a lapse.</td></tr>
+  ${C.iv.map((d, i) => `<tr><td>Spaced correct recall → level ${i + 1}</td><td>Next review after ${d} day${d > 1 ? "s" : ""}${i + 1 === C.provLevel ? " · <b>Provisional mastery</b>" : ""}${i + 1 === C.mastLevel ? " · <b>Mastered</b>" : ""}</td></tr>`).join("")}
+  <tr><td>Overdue by a whole interval</td><td>A provisional or mastered question counts one stage lower (fading) until you recall it again.</td></tr></table>
+  <p class="muted" style="margin-top:10px"><b>Statuses:</b> Unseen = never answered · Weak = last answer wrong and wrong 2+ times (or after a lapse), or wrong 3+ times while still at level 0–1 · Improving = once wrong, now correct · Learning = everything else below level ${C.provLevel} · Provisional = level ${C.provLevel}–${C.mastLevel - 1} · Mastered = level ${C.mastLevel}+, last answer correct. The mastery percentage counts <b>Mastered</b> only. Questions held for review (doubtful key or text) can't be practised, so they aren't counted.</p>
+  <details style="margin-top:8px"><summary>Change the rules</summary><div class="ms-cfg">
+    <label>Intervals (days)<input id="mc_iv" value="${C.iv.join(", ")}"></label><label>Wrong → retry after (minutes)<input id="mc_wm" type="number" value="${C.wrongMin}"></label>
+    <label>Provisional at level<input id="mc_pl" type="number" value="${C.provLevel}"></label><label>Mastered at level<input id="mc_ml" type="number" value="${C.mastLevel}"></label>
+    <label>Minimum gap (hours)<input id="mc_mg" type="number" value="${C.minGapH}"></label><label>Gap as share of interval<input id="mc_gf" type="number" step="0.1" value="${C.gapFrac}"></label>
+    <div class="row"><button class="btn pri" onclick="msSaveCfg()">Save rules</button><button class="btn ghost" onclick="MS.cfg={};msSave();render();toast('Default rules restored')">Restore defaults</button></div></div></details>`;
+}
+function msSaveCfg() {
+  const iv = $("#mc_iv").value.split(/[,\s]+/).map(Number).filter(x => x > 0), pl = +$("#mc_pl").value, ml = +$("#mc_ml").value;
+  if (iv.length < 2 || !(pl >= 1 && ml > pl && ml <= iv.length)) { toast("Check the values: mastered level must be above provisional and within the number of intervals."); return; }
+  MS.cfg = { iv, wrongMin: Math.max(1, +$("#mc_wm").value || 20), provLevel: pl, mastLevel: ml, minGapH: Math.max(0, +$("#mc_mg").value || 0), gapFrac: Math.max(0, +$("#mc_gf").value || 0) };
+  msSave(); render(); toast("Mastery rules saved — every status was recalculated from your history.");
+}
+function msCSV(mod) {
+  const { R } = msBuild(mod), cell = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const rows = msQs(mod).map(q => { const r = R.get(q.id); return [q.id, MSTL[r ? r.status : "New"], r ? r.L : 0, r ? r.a : 0, r ? r.c : 0, r ? r.w : 0, r ? r.lapses : 0, r && r.lastTs ? new Date(r.lastTs).toISOString() : "", r && r.due ? new Date(r.due).toISOString() : "", msSubjOf(mod, q)].map(cell).join(","); });
+  dl(`mastery_${mod}_${dayKey(Date.now())}.csv`, "﻿" + ["id,status,level,attempts,correct,wrong,lapses,last_attempt,next_review,subject", ...rows].join("\n"), "text/csv");
+}
+function vMastery() {
+  msCheckMiles();
+  const tab = arg && ["all", "gk", "ce"].includes(arg) ? arg : (MS.tab || "all"); MS.tab = tab;
+  const s = msSum(tab), tod = msToday(msMods(tab)), miles = msMilestones();
+  const tile = (b, l, sub) => `<div class="ms-tile2"><b>${b}</b><span>${l}</span>${sub ? `<em>${sub}</em>` : ""}</div>`;
+  const weak = msMods(tab).flatMap(m => msWeakConcepts(m, tab === "all" ? 5 : 8).map(c => ({ ...c, mod: m })));
+  return `<h1>Mastery</h1><p class="sub">What you have mastered, what you are forgetting, what you are weak at — and what to do next.</p>
+  <div class="ms-tabs">${[["all", "Both banks"], ["gk", "General Knowledge"], ["ce", "Computer Engineer"]].map(([k, l]) => `<button class="${tab === k ? "on" : ""}" onclick="MS.tab='${k}';msSave();go('mastery','${k}')">${l}</button>`).join("")}</div>
+  <section class="block ms-hero"><div class="ms-hl">${msRing("dash" + tab, s, 196)}</div>
+    <div class="ms-hb"><div class="ms-big"><b>${msN(s.left)}</b> questions left to master</div>
+      <div class="muted">You have mastered <b>${msP(s.pct)}</b> of ${tab === "all" ? "your question bank" : MMOD[tab]} — ${msN(s.mast)} of ${msN(s.total)} questions.${s.held ? ` <span class="faint">(${msN(s.held)} held for review are not counted.)</span>` : ""}</div>
+      ${msJourney(s, true)}
+      <table class="ms-st"><tr>${MST.map(k => `<td><i style="background:${MCOL[k]}"></i>${MSTL[k]}<b>${msN(s.n[k])}</b></td>`).join("")}<td class="tot">Total<b>${msN(s.total)}</b></td></tr></table></div></section>
+  <div class="ms-three">
+    ${tile(msN(tod.n), "Daily activity", "answers today")}
+    ${tile(tod.acc == null ? "—" : msP(tod.acc), "Learning effectiveness", "correct today")}
+    ${tile((tod.gain > 0 ? "+" : "") + msN(tod.gain), "Long-term mastery", "net mastered today")}
+    ${tile(msN(s.due), "Due now", `${msN(s.risk)} learned questions at risk`)}</div>
+  <div class="banner info ms-acct2">${esc(msAccount(s, tod))}</div>
+  <section class="block lead"><h2 style="margin-top:0">Recommended next practice</h2>${msRecCards(tab, 6)}</section>
+  ${msMods(tab).map(m => `<section class="block"><h2 style="margin-top:0">Mistake repetition &amp; revision${tab === "all" ? " — " + MMOD[m] : ""}</h2>${msModes(m)}</section>`).join("")}
+  <section class="block"><h2 style="margin-top:0">Weak concepts</h2>${weak.length ? `<table class="ms-tt"><tr><th>Concept</th>${tab === "all" ? "<th>Bank</th>" : ""}<th class="n">Questions</th><th class="n">Tried</th><th class="n">Accuracy</th><th class="n">Repeated mistakes</th><th class="n">Forgotten</th><th class="n">Mastered</th><th></th></tr>
+    ${weak.map(c => `<tr><td><b>${esc(c.label)}</b></td>${tab === "all" ? `<td class="faint">${c.mod === "gk" ? "GK" : "CE"}</td>` : ""}<td class="n">${c.g.total}</td><td class="n">${c.g.att}</td><td class="n"><span class="tag ${c.g.acc < 0.5 ? "bad" : "warn"}">${fp(Math.round((c.g.acc || 0) * 100))}</span></td><td class="n">${c.g.rep}</td><td class="n">${c.g.lapses}</td><td class="n">${msP(c.g.pct)}</td><td><button class="btn sm" onclick='msStart(${msJ(c.mod)},"concept",${msJ(c.key)})'>Practise</button></td></tr>`).join("")}</table>`
+      : `<div class="faint">No weak concept detected yet. A concept shows up here once you have tried at least 3 of its questions and accuracy is below 60%, or the same concept produces repeated mistakes or lapses.</div>`}</section>
+  ${msMods(tab).map(m => `<section class="block"><h2 style="margin-top:0">Subject mastery map${tab === "all" ? " — " + MMOD[m] : ""}</h2><p class="faint" style="margin-top:-6px">Darker green = more mastered. Red = weak. Click a subject for its topics.</p>${msHeat(m)}</section>`).join("")}
+  <section class="block">${msChart(tab)}</section>
+  ${tab !== "gk" ? msPastPanel() : ""}
+  <section class="block"><h2 style="margin-top:0">Milestones</h2><div class="ms-miles">${miles.map(m => `<div class="ms-mile ${m.ok ? "ok" : ""}"><span>${m.ok ? "★" : "☆"}</span><div><b>${esc(m.t)}</b>${m.ok && MS.miles[m.id] ? `<em>${fdate(MS.miles[m.id])}</em>` : m.d ? `<em>${esc(m.d)}</em>` : ""}</div></div>`).join("")}</div></section>
+  <section class="block"><div class="spread"><h2 style="margin:0">Mistake notebook</h2>${msMods(tab).map(m => msList(m, "incorrect").length ? `<button class="btn sm" onclick="msStart('${m}','incorrect')">Practise ${tab === "all" ? (m === "gk" ? "GK " : "CE ") : ""}mistakes</button>` : "").join("")}</div>${msNotebook(tab)}</section>
+  <section class="block"><h2 style="margin-top:0">How mastery is decided</h2>${msHow()}
+    <div class="row" style="margin-top:12px">${msMods(tab).map(m => `<button class="btn sm" onclick="msCSV('${m}')">Download ${m === "gk" ? "GK" : "CE"} mastery (CSV)</button>`).join("")}<button class="btn sm" onclick="exportAll()">Download all progress</button></div></section>`;
+}
+function msMerge(X) { if (!X) return; MS.cfg = Object.keys(MS.cfg || {}).length ? MS.cfg : (X.cfg || {}); for (const [k, v] of Object.entries(X.miles || {})) if (!MS.miles[k] || v < MS.miles[k]) MS.miles[k] = v; MS.base = MS.base || X.base || 0; msSave(); }
+
+// ---- styles
+(function msCSS() {
+  const css = `.ms-hero{display:flex;gap:28px;align-items:center;flex-wrap:wrap}.ms-hb{flex:1;min-width:260px}.ms-kick{font-size:12px;color:var(--muted);text-transform:none;font-weight:600}
+  .ms-big{font-size:30px;line-height:1.15;margin:2px 0 6px}.ms-big b{font-size:44px;font-variant-numeric:tabular-nums;color:var(--ink,#111)}.ms-big.sm{font-size:17px}.ms-big.sm b{font-size:24px}
+  .ms-ring{position:relative;flex:none}.ms-ring2{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}.ms-ringtxt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ms-ringtxt b{font-size:30px;font-variant-numeric:tabular-nums}.ms-strip .ms-ringtxt b{font-size:17px}.ms-ringtxt span{font-size:12px;color:var(--muted)}.ms-strip .ms-ringtxt span{font-size:10px}
+  .ms-journey{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:12px 0 8px;gap:2px}.ms-journey.big{height:22px;border-radius:11px}.ms-seg{min-width:3px}
+  .ms-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}.ms-legend i,.ms-st i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}.ms-legend b{color:var(--ink,#111)}
+  .ms-acct{margin-top:10px;font-weight:600;color:var(--accent)}.ms-acct2{font-weight:600}
+  .ms-strip{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .ms-recs{display:grid;gap:8px}.ms-rec{display:flex;gap:14px;align-items:center;text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;font:inherit;color:inherit}
+  .ms-rec:hover{border-color:var(--accent-2)}.ms-rec.top{border-color:var(--accent-2);background:var(--accent-soft)}.ms-rk{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .ms-rb{flex:1;display:flex;flex-direction:column;gap:2px}.ms-rb span{font-size:13px;color:var(--muted)}.ms-go{font-weight:600;color:var(--accent);white-space:nowrap}
+  .ms-tabs{display:flex;gap:6px;margin:6px 0 14px;flex-wrap:wrap}.ms-tabs button{border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:7px 16px;font:inherit;cursor:pointer}.ms-tabs button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .ms-st{width:100%;margin-top:12px;border-collapse:collapse}.ms-st td{padding:6px 8px;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}.ms-st td b{display:block;font-size:20px;color:var(--ink,#111);font-variant-numeric:tabular-nums}.ms-st td.tot{border-left:1px solid var(--line)}
+  .ms-three{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:0 0 12px}.ms-tile2{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface);display:flex;flex-direction:column}
+  .ms-tile2 b{font-size:26px;font-variant-numeric:tabular-nums}.ms-tile2 span{font-weight:600}.ms-tile2 em{font-style:normal;font-size:12px;color:var(--muted)}
+  .ms-modes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.ms-mode{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface);text-align:left;cursor:pointer;font:inherit;display:flex;flex-direction:column}
+  .ms-mode b{font-size:22px}.ms-mode span{font-size:12px;color:var(--muted)}.ms-mode.off{opacity:.45;cursor:default}.ms-mode:not(.off):hover{border-color:var(--accent-2)}
+  .ms-heat{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}.ms-tile{border:1px solid rgba(0,0,0,.06);border-radius:10px;padding:10px;text-align:left;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:2px;min-height:86px}
+  .ms-tile.weak{border:2px solid var(--bad)}.ms-tp{font-size:22px;font-weight:700}.ms-ts{font-size:11px;opacity:.85}
+  .ms-tt{width:100%;font-size:13px}.ms-tt th{text-align:left;font-weight:600;color:var(--muted)}.ms-tt .n{text-align:right}.ms-mini{display:inline-block;width:60px;height:6px;background:var(--soft);border-radius:3px;vertical-align:middle}.ms-mini i{display:block;height:100%;background:var(--ok);border-radius:3px}
+  .ms-chart{width:100%;height:auto;margin-top:8px}.ms-ax{font-size:10px;fill:var(--muted)}
+  .ms-miles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}.ms-mile{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}
+  .ms-mile.ok{border:1px solid #9cc9ad;background:var(--ok-soft);color:inherit}.ms-mile span{font-size:20px;line-height:1}.ms-mile.ok span{color:#c99a06}.ms-mile em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+  .ms-nb{display:grid;gap:8px;margin-top:8px}.ms-nbr{border:1px solid var(--line);border-left:4px solid var(--bad);border-radius:8px;padding:10px 12px}.ms-nbr.rec{border-left-color:var(--ok)}.ms-nbq{margin:4px 0}.ms-nbg{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--muted)}
+  .ms-nbg .bad{color:var(--bad)}.ms-nbg .okc{color:var(--ok)}
+  .ms-cfg{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px}.ms-cfg label{display:flex;flex-direction:column;font-size:13px;gap:4px}
+  .ms-cele{text-align:center;padding:10px}.ms-burst{font-size:64px;color:#e0a800;animation:msPop .7s ease-out}@keyframes msPop{0%{transform:scale(.2) rotate(-40deg);opacity:0}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+  @media (prefers-reduced-motion:reduce){.ms-burst{animation:none}}@media (max-width:640px){.ms-big b{font-size:34px}.ms-hero{gap:14px}}`;
+  const el = document.createElement("style"); el.textContent = css; document.head.appendChild(el);
+})();
 
 render();
 </script>
